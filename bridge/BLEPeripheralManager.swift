@@ -17,9 +17,11 @@ class BLEPeripheralManager: NSObject, ObservableObject, CBPeripheralManagerDeleg
     // MARK: - BLE Properties
     private var peripheralManager: CBPeripheralManager!
     private var textCharacteristic: CBMutableCharacteristic!
+    private var macToAndroidCharacteristic: CBMutableCharacteristic!
     // Эти UUID должны быть точно такими же, как и в Android-приложении
-    let serviceUUID = CBUUID(string: "81a936be-a052-4ef1-9c3c-073c0b63438d")
-    let characteristicUUID = CBUUID(string: "f95f7d8b-cd6d-433a-b1d1-28b0955faa52")
+    let bridgerServiceUUID = CBUUID(string: "81a936be-a052-4ef1-9c3c-073c0b63438d")
+    let AndroidToMacCharacteristicUUID = CBUUID(string: "f95f7d8b-cd6d-433a-b1d1-28b0955faa52")
+    let MacToAndroidCharacteristicUUID = CBUUID(string: "b184c753-e5ca-401c-9844-b3935a56b7d2")
     
     // MARK: - Clipboard Sync Properties
     private var pasteboardTimer: Timer?
@@ -67,14 +69,20 @@ class BLEPeripheralManager: NSObject, ObservableObject, CBPeripheralManagerDeleg
 
     // Настройка и создание нашего BLE-сервиса и характеристики
     private func setupService() {
-        let service = CBMutableService(type: serviceUUID, primary: true)
+        let service = CBMutableService(type: bridgerServiceUUID, primary: true)
         textCharacteristic = CBMutableCharacteristic(
-            type: characteristicUUID,
+            type: AndroidToMacCharacteristicUUID,
             properties: [.read, .write, .notify], // Позволяем читать, писать и получать уведомления
             value: nil,
             permissions: [.readable, .writeable] // Даем права на чтение и запись
         )
-        service.characteristics = [textCharacteristic]
+        macToAndroidCharacteristic = CBMutableCharacteristic(
+            type: MacToAndroidCharacteristicUUID,
+            properties: [.notify, .read], // Android будет читать/подписываться на эту характеристику
+            value: nil,
+            permissions: [.readable] // Даем права на чтение
+        )
+        service.characteristics = [textCharacteristic, macToAndroidCharacteristic]
         peripheralManager.add(service) // Добавляем готовый сервис в менеджер
     }
     
@@ -144,8 +152,8 @@ class BLEPeripheralManager: NSObject, ObservableObject, CBPeripheralManagerDeleg
     /// Отправляет текст на подключенное устройство (на Android)
     func sendText(_ text: String) {
         guard let data = text.data(using: .utf8) else { return }
-        if isPoweredOn && textCharacteristic != nil {
-            peripheralManager.updateValue(data, for: textCharacteristic, onSubscribedCentrals: nil)
+        if isPoweredOn && macToAndroidCharacteristic != nil {
+            peripheralManager.updateValue(data, for: macToAndroidCharacteristic, onSubscribedCentrals: nil)
             print("Текст отправлен на Android: \(text)")
         }
     }
