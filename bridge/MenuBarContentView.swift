@@ -13,20 +13,20 @@ struct MenuBarContentView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Bridge Sync")
+            Text("Bridger")
                 .font(.headline)
             
             // Отображаем статус подключения
             // (Для этого нужно будет добавить @Published свойство в BLEManager)
             // Пока оставим так, позже можно будет улучшить
-            Text(bleManager.isPoweredOn ? "Статус: Активно" : "Статус: Bluetooth выключен")
+            Text(bleManager.isPoweredOn ? "Status: Active" : "Status: Bluetooth is off")
                 .font(.caption)
 
             // Разделитель
             Divider()
 
             // Кнопка для выхода из приложения
-            Button("Выход") {
+            Button("Terminate") {
                 // Стандартная команда для завершения работы приложения macOS
                 NSApplication.shared.terminate(nil)
             }
