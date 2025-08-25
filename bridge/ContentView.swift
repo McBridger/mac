@@ -21,7 +21,7 @@ struct ContentView: View {
                 .font(.largeTitle)
 
             // Отображаем статус Bluetooth
-            Text(bleManager.isPoweredOn ? "Bluetooth включен" : "Bluetooth выключен")
+            Text(bleManager.isPoweredOn ? "Bluetooth On" : "Bluetooth Off")
                 .foregroundColor(bleManager.isPoweredOn ? .green : .red)
             
             Divider()

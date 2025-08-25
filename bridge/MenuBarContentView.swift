@@ -8,30 +8,44 @@
 import SwiftUI
 
 struct MenuBarContentView: View {
-    // Получаем доступ к нашему менеджеру, чтобы видеть статус
     @ObservedObject var bleManager: BLEPeripheralManager
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Bridger")
-                .font(.headline)
             
-            // Отображаем статус подключения
-            // (Для этого нужно будет добавить @Published свойство в BLEManager)
-            // Пока оставим так, позже можно будет улучшить
-            Text(bleManager.isPoweredOn ? "Status: Active" : "Status: Bluetooth is off")
-                .font(.caption)
+            // Оборачиваем текст в кнопки с пустым действием (чтобы добиться правильныъ цветов для текста)
+            Button(action: {}) {
+                Text("Bridger")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+                        
+            Button(action: {}) {
+                if bleManager.isPoweredOn {
+                    (Text("Status: ") + Text("Active").foregroundStyle(.green))
+                } else {
+                    (Text("Status: ") + Text("Bluetooth is off").foregroundStyle(.red))
+                }
+            }
+            .font(.caption)
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-            // Разделитель
+            
+            
+            Button(action: {}) {
+                Text("Connection: \(bleManager.connectionStatus)")
+                    .font(.caption)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
             Divider()
 
-            // Кнопка для выхода из приложения
             Button("Terminate") {
-                // Стандартная команда для завершения работы приложения macOS
                 NSApplication.shared.terminate(nil)
             }
         }
         .padding(.horizontal)
         .padding(.vertical, 8)
+        .buttonStyle(.plain)
     }
 }

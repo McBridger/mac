@@ -2,17 +2,16 @@ import Foundation
 import CoreBluetooth
 import Combine
 import AppKit // Импорт для работы с буфером обмена NSPasteboard
-
 // Класс управляет всей логикой Bluetooth и синхронизацией буфера обмена.
 // NSObject - требование для делегатов CoreBluetooth.
 // ObservableObject - чтобы SwiftUI мог следить за его изменениями.
 // CBPeripheralManagerDelegate - чтобы получать события от Bluetooth-модуля.
 class BLEPeripheralManager: NSObject, ObservableObject, CBPeripheralManagerDelegate {
-
     // MARK: - Published Properties for SwiftUI
     // Эти свойства будут автоматически обновлять интерфейс
     @Published var receivedText: String = "Ожидание данных от Android..."
     @Published var isPoweredOn: Bool = false
+    @Published var connectionStatus: String = "Disconnected"
 
     // MARK: - BLE Properties
     private var peripheralManager: CBPeripheralManager!
@@ -93,8 +92,8 @@ class BLEPeripheralManager: NSObject, ObservableObject, CBPeripheralManagerDeleg
             return
         }
         
-        let deviceName = Host.current().localizedName ?? "Mac Bridger"
-        print(deviceName)
+        // let deviceName = Host.current().localizedName ?? "Mac Bridger"
+        let deviceName = "McBridge"
 
         let advertisementData: [String: Any] = [
             CBAdvertisementDataLocalNameKey: deviceName,
@@ -102,6 +101,23 @@ class BLEPeripheralManager: NSObject, ObservableObject, CBPeripheralManagerDeleg
         ]
         peripheralManager.startAdvertising(advertisementData)
         print("Сервис добавлен. Начало вещания.")
+        self.connectionStatus = "Advertising"
+    }
+
+    // Вызывается, когда центральное устройство (Android) подписывается на характеристику
+    func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didSubscribeTo characteristic: CBCharacteristic) {
+        print("Центральное устройство (Android) подключено и подписано на характеристику.")
+        DispatchQueue.main.async {
+            self.connectionStatus = "Connected to Android"
+        }
+    }
+
+    // Вызывается, когда центральное устройство (Android) отписывается от характеристики
+    func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didUnsubscribeFrom characteristic: CBCharacteristic) {
+        print("Центральное устройство (Android) отключено.")
+        DispatchQueue.main.async {
+            self.connectionStatus = "Disconnected"
+        }
     }
 
     // Вызывается, когда Android присылает данные
@@ -136,6 +152,9 @@ class BLEPeripheralManager: NSObject, ObservableObject, CBPeripheralManagerDeleg
                 NSPasteboard.general.setString(receivedString, forType: .string)
                 self.lastChangeCount = NSPasteboard.general.changeCount
                 
+                // Показываем уведомление
+                self.showNotification(title: "Clipboard Synced", body: "Received from Android: \(receivedString)")
+                
                 // Сбрасываем флаг с небольшой задержкой
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     self.isUpdatingInternally = false
@@ -145,6 +164,16 @@ class BLEPeripheralManager: NSObject, ObservableObject, CBPeripheralManagerDeleg
         
         // Отвечаем Android, что все прошло успешно
         peripheral.respond(to: request, withResult: .success)
+    }
+
+    // MARK: - Notification Logic
+    private func showNotification(title: String, body: String) {
+        let notification = NSUserNotification()
+        notification.title = title
+        notification.informativeText = body
+        notification.deliveryDate = Date() // Deliver immediately
+        
+        NSUserNotificationCenter.default.deliver(notification)
     }
 
     // MARK: - Clipboard and Sending Logic
