@@ -6,10 +6,22 @@
 //
 
 import SwiftUI
+import UserNotifications // Импорт для работы с уведомлениями
 
 @main
 struct bridgeApp: App {
     @StateObject private var bleManager = BLEPeripheralManager()
+
+    init() {
+        // Запрашиваем разрешение на отправку уведомлений при запуске приложения
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+            if granted {
+                print("Notification permissions granted.")
+            } else if let error = error {
+                print("Notification permissions denied: \(error.localizedDescription)")
+            }
+        }
+    }
 
     var body: some Scene {
         MenuBarExtra {

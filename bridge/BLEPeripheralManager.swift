@@ -2,6 +2,50 @@ import Foundation
 import CoreBluetooth
 import Combine
 import AppKit // Импорт для работы с буфером обмена NSPasteboard
+import UserNotifications // Для современных уведомлений
+import SystemConfiguration
+
+// MARK: - Enums for BLE State
+
+enum BluetoothPowerState: String {
+    case poweredOn = "Bluetooth On"
+    case poweredOff = "Bluetooth Off"
+}
+
+enum ConnectionState: String {
+    case disconnected = "Disconnected"
+    case advertising = "Advertising"
+    case connected = "Connected to Android"
+}
+
+// MARK: - Message Protocol Structs
+
+enum MESSAGE_TYPE: Int, Codable {
+    case CLIPBOARD = 0
+    case DEVICE_NAME = 1
+}
+
+struct Message: Codable {
+    let t: MESSAGE_TYPE // type
+    let p: String      // payload
+}
+
+// MARK: - Device Info Struct
+
+class DeviceInfo: Identifiable, ObservableObject, Equatable {
+    let id: UUID
+    @Published var name: String // Теперь имя тоже @Published
+    
+    init(id: UUID, name: String) {
+        self.id = id
+        self.name = name
+    }
+    
+    static func == (lhs: DeviceInfo, rhs: DeviceInfo) -> Bool {
+        lhs.id == rhs.id
+    }
+}
+
 // Класс управляет всей логикой Bluetooth и синхронизацией буфера обмена.
 // NSObject - требование для делегатов CoreBluetooth.
 // ObservableObject - чтобы SwiftUI мог следить за его изменениями.
@@ -10,17 +54,17 @@ class BLEPeripheralManager: NSObject, ObservableObject, CBPeripheralManagerDeleg
     // MARK: - Published Properties for SwiftUI
     // Эти свойства будут автоматически обновлять интерфейс
     @Published var receivedText: String = "Ожидание данных от Android..."
-    @Published var isPoweredOn: Bool = false
-    @Published var connectionStatus: String = "Disconnected"
+    @Published var powerState: BluetoothPowerState = .poweredOff
+    @Published var connectionState: ConnectionState = .disconnected
+    @Published var connectedDevices: [DeviceInfo] = [] // Список подключенных устройств с именами
 
     // MARK: - BLE Properties
     private var peripheralManager: CBPeripheralManager!
     private var textCharacteristic: CBMutableCharacteristic!
-    private var macToAndroidCharacteristic: CBMutableCharacteristic!
     // Эти UUID должны быть точно такими же, как и в Android-приложении
-    let bridgerServiceUUID = CBUUID(string: "81a936be-a052-4ef1-9c3c-073c0b63438d")
-    let AndroidToMacCharacteristicUUID = CBUUID(string: "f95f7d8b-cd6d-433a-b1d1-28b0955faa52")
-    let MacToAndroidCharacteristicUUID = CBUUID(string: "b184c753-e5ca-401c-9844-b3935a56b7d2")
+    let advertiseUUID = CBUUID(string: "fdd2")
+    let bridgerServiceUUID = CBUUID(string: "ccfa23b4-ba6f-448a-827d-c25416ec432e")
+    let characteristicUUID = CBUUID(string: "315eca9d-0dbc-498d-bb4d-1d59d7c5bc3b")
     
     // MARK: - Clipboard Sync Properties
     private var pasteboardTimer: Timer?
@@ -58,30 +102,24 @@ class BLEPeripheralManager: NSObject, ObservableObject, CBPeripheralManagerDeleg
     func peripheralManagerDidUpdateState(_ peripheral: CBPeripheralManager) {
         if peripheral.state == .poweredOn {
             print("BLE на Mac включен.")
-            self.isPoweredOn = true
+            self.powerState = .poweredOn
             setupService() // Если Bluetooth включен, настраиваем наш сервис
         } else {
             print("BLE выключен или недоступен.")
-            self.isPoweredOn = false
+            self.powerState = .poweredOff
         }
     }
 
     // Настройка и создание нашего BLE-сервиса и характеристики
     private func setupService() {
         let service = CBMutableService(type: bridgerServiceUUID, primary: true)
-        textCharacteristic = CBMutableCharacteristic(
-            type: AndroidToMacCharacteristicUUID,
-            properties: [.read, .write, .notify], // Позволяем читать, писать и получать уведомления
+        self.textCharacteristic = CBMutableCharacteristic(
+            type: characteristicUUID,
+            properties: [.read, .write, .notifyEncryptionRequired],
             value: nil,
-            permissions: [.readable, .writeable] // Даем права на чтение и запись
+            permissions: [.readEncryptionRequired, .writeEncryptionRequired]
         )
-        macToAndroidCharacteristic = CBMutableCharacteristic(
-            type: MacToAndroidCharacteristicUUID,
-            properties: [.notify, .read], // Android будет читать/подписываться на эту характеристику
-            value: nil,
-            permissions: [.readable] // Даем права на чтение
-        )
-        service.characteristics = [textCharacteristic, macToAndroidCharacteristic]
+        service.characteristics = [self.textCharacteristic]
         peripheralManager.add(service) // Добавляем готовый сервис в менеджер
     }
     
@@ -92,23 +130,29 @@ class BLEPeripheralManager: NSObject, ObservableObject, CBPeripheralManagerDeleg
             return
         }
         
-        // let deviceName = Host.current().localizedName ?? "Mac Bridger"
-        let deviceName = "McBridge"
+        let deviceName = SCDynamicStoreCopyComputerName(nil, nil) as String? ?? "McBridge";
 
         let advertisementData: [String: Any] = [
-            CBAdvertisementDataLocalNameKey: deviceName,
-            CBAdvertisementDataServiceUUIDsKey: [service.uuid]
+          CBAdvertisementDataServiceUUIDsKey: [advertiseUUID],
+          CBAdvertisementDataLocalNameKey: deviceName
         ]
+        
         peripheralManager.startAdvertising(advertisementData)
-        print("Сервис добавлен. Начало вещания.")
-        self.connectionStatus = "Advertising"
+        print("Сервис добавлен. Начало вещания с коротким UUID и именем.")
+        self.connectionState = .advertising
     }
 
     // Вызывается, когда центральное устройство (Android) подписывается на характеристику
     func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didSubscribeTo characteristic: CBCharacteristic) {
         print("Центральное устройство (Android) подключено и подписано на характеристику.")
         DispatchQueue.main.async {
-            self.connectionStatus = "Connected to Android"
+            if !self.connectedDevices.contains(where: { $0.id == central.identifier }) {
+                let newDevice = DeviceInfo(id: central.identifier, name: central.identifier.uuidString)
+                self.connectedDevices.append(newDevice)
+                self.connectionState = .connected
+                self.showNotification(title: "Device Connected", body: "New device connected: \(newDevice.name)")
+                print("DEBUG: Device added to connectedDevices: \(newDevice.name) (UUID: \(newDevice.id.uuidString))")
+            }
         }
     }
 
@@ -116,7 +160,13 @@ class BLEPeripheralManager: NSObject, ObservableObject, CBPeripheralManagerDeleg
     func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didUnsubscribeFrom characteristic: CBCharacteristic) {
         print("Центральное устройство (Android) отключено.")
         DispatchQueue.main.async {
-            self.connectionStatus = "Disconnected"
+            // Находим имя устройства для уведомления перед удалением
+            let disconnectedDeviceName = self.connectedDevices.first(where: { $0.id == central.identifier })?.name ?? central.identifier.uuidString
+            self.connectedDevices.removeAll { $0.id == central.identifier }
+            if self.connectedDevices.isEmpty {
+                self.connectionState = .disconnected
+            }
+            self.showNotification(title: "Device Disconnected", body: "Device disconnected: \(disconnectedDeviceName)")
         }
     }
 
@@ -129,37 +179,52 @@ class BLEPeripheralManager: NSObject, ObservableObject, CBPeripheralManagerDeleg
             return
         }
 
-        if let receivedString = String(data: value, encoding: .utf8) {
-            
-            // Проверка на дублирование
-            guard receivedString != self.lastSyncedText else {
-                print("Получен тот же текст ('\(receivedString)'), игнорируем.")
-                peripheral.respond(to: request, withResult: .success)
-                return
-            }
-            
-            print("Получен текст от Android: \(receivedString)")
-            
-            // Обновляем UI и буфер обмена в главном потоке
+        do {
+            let decoder = JSONDecoder()
+            let message = try decoder.decode(Message.self, from: value)
+
             DispatchQueue.main.async {
-                self.lastSyncedText = receivedString
-                self.receivedText = receivedString
-                
-                // Устанавливаем флаг, чтобы разорвать цикл
-                self.isUpdatingInternally = true
-                
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(receivedString, forType: .string)
-                self.lastChangeCount = NSPasteboard.general.changeCount
-                
-                // Показываем уведомление
-                self.showNotification(title: "Clipboard Synced", body: "Received from Android: \(receivedString)")
-                
-                // Сбрасываем флаг с небольшой задержкой
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    self.isUpdatingInternally = false
+                switch message.t {
+                case .CLIPBOARD:
+                    // Проверка на дублирование
+                    guard message.p != self.lastSyncedText else {
+                        print("Получен тот же текст ('\(message.p)'), игнорируем.")
+                        peripheral.respond(to: request, withResult: .success)
+                        return
+                    }
+                    
+                    print("Получен текст от Android: \(message.p)")
+                    self.lastSyncedText = message.p
+                    self.receivedText = message.p
+                    
+                    self.isUpdatingInternally = true
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(message.p, forType: .string)
+                    self.lastChangeCount = NSPasteboard.general.changeCount
+                    self.showNotification(title: "Clipboard Synced", body: "Received from Android: \(message.p)")
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        self.isUpdatingInternally = false
+                    }
+
+                case .DEVICE_NAME:
+                    print("DEBUG: Received DEVICE_NAME message for central \(request.central.identifier.uuidString) with name: \(message.p)")
+                    if let index = self.connectedDevices.firstIndex(where: { $0.id == request.central.identifier }) {
+                        print("DEBUG: Found device at index \(index). Current name: \(self.connectedDevices[index].name)")
+                        
+                        // Теперь DeviceInfo - это класс ObservableObject,
+                        // поэтому мы можем просто изменить его свойство name,
+                        // и SwiftUI должен отреагировать.
+                        self.connectedDevices[index].name = message.p
+                        
+                        print("DEBUG: Device name updated to \(self.connectedDevices[index].name). connectedDevices count: \(self.connectedDevices.count)")
+                        // Уведомление об изменении имени устройства отключено по запросу пользователя
+                    } else {
+                        print("DEBUG: Received DEVICE_NAME for unknown central \(request.central.identifier.uuidString). Payload: \(message.p)")
+                    }
                 }
             }
+        } catch {
+            print("Ошибка при декодировании сообщения: \(error.localizedDescription). Полученные данные: \(String(data: value, encoding: .utf8) ?? "N/A")")
         }
         
         // Отвечаем Android, что все прошло успешно
@@ -168,22 +233,35 @@ class BLEPeripheralManager: NSObject, ObservableObject, CBPeripheralManagerDeleg
 
     // MARK: - Notification Logic
     private func showNotification(title: String, body: String) {
-        let notification = NSUserNotification()
-        notification.title = title
-        notification.informativeText = body
-        notification.deliveryDate = Date() // Deliver immediately
-        
-        NSUserNotificationCenter.default.deliver(notification)
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = UNNotificationSound.default
+
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                print("Error delivering notification: \(error.localizedDescription)")
+            }
+        }
     }
 
     // MARK: - Clipboard and Sending Logic
     
     /// Отправляет текст на подключенное устройство (на Android)
     func sendText(_ text: String) {
-        guard let data = text.data(using: .utf8) else { return }
-        if isPoweredOn && macToAndroidCharacteristic != nil {
-            peripheralManager.updateValue(data, for: macToAndroidCharacteristic, onSubscribedCentrals: nil)
+        let message = Message(t: .CLIPBOARD, p: text)
+        guard let data = try? JSONEncoder().encode(message) else {
+            print("Ошибка при кодировании сообщения для отправки.")
+            return
+        }
+        
+        // Отправляем текст только если Bluetooth включен, характеристика доступна и есть подключенные устройства
+        if powerState == .poweredOn && textCharacteristic != nil && !connectedDevices.isEmpty {
+            peripheralManager.updateValue(data, for: textCharacteristic, onSubscribedCentrals: nil)
             print("Текст отправлен на Android: \(text)")
+        } else {
+            print("Не удалось отправить текст: Bluetooth выключен, характеристика недоступна или нет подключенных устройств.")
         }
     }
     

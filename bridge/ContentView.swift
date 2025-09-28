@@ -11,9 +11,6 @@ struct ContentView: View {
     // Получаем доступ к нашему менеджеру, который мы создали в bridgeApp
     @ObservedObject var bleManager: BLEPeripheralManager
 
-    // Локальная переменная для хранения текста, который мы хотим отправить
-    @State private var textToSend: String = ""
-
     var body: some View {
         VStack(spacing: 20) {
             
@@ -21,38 +18,26 @@ struct ContentView: View {
                 .font(.largeTitle)
 
             // Отображаем статус Bluetooth
-            Text(bleManager.isPoweredOn ? "Bluetooth On" : "Bluetooth Off")
-                .foregroundColor(bleManager.isPoweredOn ? .green : .red)
-            
-            Divider()
-            
-            // Секция для полученного текста
-            VStack(alignment: .leading) {
-                Text("Получено от Android:")
-                    .font(.headline)
-                Text(bleManager.receivedText)
-                    .padding()
-                    .frame(maxWidth: .infinity, minHeight: 100, alignment: .topLeading)
-                    .border(Color.gray)
+            HStack {
+                Text("Bluetooth Status:")
+                Text(bleManager.powerState.rawValue)
+                    .foregroundColor(bleManager.powerState == .poweredOn ? .green : .red)
             }
             
             Divider()
-            
-            // Секция для отправки текста
+
+            // Секция для подключенных устройств
             VStack(alignment: .leading) {
-                Text("Отправить на Android:")
+                Text("Подключенные устройства:")
                     .font(.headline)
-                
-                TextField("Введите текст здесь...", text: $textToSend)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                
-                Button("Отправить") {
-                    // При нажатии на кнопку вызываем метод нашего менеджера
-                    bleManager.sendText(textToSend)
-                    // Очищаем поле ввода
-                    textToSend = ""
+                if bleManager.connectedDevices.isEmpty {
+                    Text("Нет подключенных устройств.")
+                        .foregroundColor(.gray)
+                } else {
+                    ForEach(bleManager.connectedDevices) { device in
+                        Text(device.name)
+                    }
                 }
-                .disabled(!bleManager.isPoweredOn) // Кнопка неактивна, если BT выключен
             }
             
         }

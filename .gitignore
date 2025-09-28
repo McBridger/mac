@@ -1,0 +1,28 @@
+# Xcode
+.DS_Store
+# Build products
+build/
+*.xcarchive
+*.xcworkspace/xcuserdata/
+xcuserdata/
+
+# Swift Package Manager
+.swiftpm/
+Package.resolved
+
+# CocoaPods
+Pods/
+
+# Carthage
+Carthage/
+
+# DerivedData
+DerivedData/
+
+# Playgrounds
+*.playground/
+
+# Other
+*.bak
+*.swp
+*~

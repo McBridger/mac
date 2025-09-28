@@ -21,11 +21,7 @@ struct MenuBarContentView: View {
             }
                         
             Button(action: {}) {
-                if bleManager.isPoweredOn {
-                    (Text("Status: ") + Text("Active").foregroundStyle(.green))
-                } else {
-                    (Text("Status: ") + Text("Bluetooth is off").foregroundStyle(.red))
-                }
+                (Text("Status: ") + Text(bleManager.powerState.rawValue).foregroundStyle(bleManager.powerState == .poweredOn ? .green : .red))
             }
             .font(.caption)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -33,9 +29,22 @@ struct MenuBarContentView: View {
             
             
             Button(action: {}) {
-                Text("Connection: \(bleManager.connectionStatus)")
+                Text("Connection: \(bleManager.connectionState.rawValue)")
                     .font(.caption)
                     .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            if !bleManager.connectedDevices.isEmpty {
+                Divider()
+                Button(action: {}) {
+                    Text("Connected Devices:")
+                        .font(.caption)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                ForEach(bleManager.connectedDevices) { device in
+                    // Используем @ObservedObject для каждого элемента, чтобы реагировать на изменения name
+                    ConnectedDeviceRow(device: device)
+                }
             }
 
             Divider()
