@@ -8,8 +8,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    // Получаем доступ к нашему менеджеру, который мы создали в bridgeApp
-    @ObservedObject var bleManager: BLEPeripheralManager
+    @ObservedObject var viewModel: AppViewModel
 
     var body: some View {
         VStack(spacing: 20) {
@@ -20,8 +19,8 @@ struct ContentView: View {
             // Отображаем статус Bluetooth
             HStack {
                 Text("Bluetooth Status:")
-                Text(bleManager.powerState.rawValue)
-                    .foregroundColor(bleManager.powerState == .poweredOn ? .green : .red)
+                Text(viewModel.bluetoothPowerState.rawValue)
+                    .foregroundColor(viewModel.bluetoothPowerState == .poweredOn ? .green : .red)
             }
             
             Divider()
@@ -30,11 +29,11 @@ struct ContentView: View {
             VStack(alignment: .leading) {
                 Text("Подключенные устройства:")
                     .font(.headline)
-                if bleManager.connectedDevices.isEmpty {
+                if viewModel.connectedDevices.isEmpty {
                     Text("Нет подключенных устройств.")
                         .foregroundColor(.gray)
                 } else {
-                    ForEach(bleManager.connectedDevices) { device in
+                    ForEach(viewModel.connectedDevices) { device in
                         Text(device.name)
                     }
                 }

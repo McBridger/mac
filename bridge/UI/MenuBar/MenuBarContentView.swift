@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct MenuBarContentView: View {
-    @ObservedObject var bleManager: BLEPeripheralManager
+    @ObservedObject var viewModel: AppViewModel
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -21,7 +21,7 @@ struct MenuBarContentView: View {
             }
                         
             Button(action: {}) {
-                (Text("Status: ") + Text(bleManager.powerState.rawValue).foregroundStyle(bleManager.powerState == .poweredOn ? .green : .red))
+                (Text("Status: ") + Text(viewModel.bluetoothPowerState.rawValue).foregroundStyle(viewModel.bluetoothPowerState == .poweredOn ? .green : .red))
             }
             .font(.caption)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -29,19 +29,19 @@ struct MenuBarContentView: View {
             
             
             Button(action: {}) {
-                Text("Connection: \(bleManager.connectionState.rawValue)")
+                Text("Connection: \(viewModel.connectionState.rawValue)")
                     .font(.caption)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            if !bleManager.connectedDevices.isEmpty {
+            if !viewModel.connectedDevices.isEmpty {
                 Divider()
                 Button(action: {}) {
                     Text("Connected Devices:")
                         .font(.caption)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                ForEach(bleManager.connectedDevices) { device in
+                ForEach(viewModel.connectedDevices) { device in
                     // Используем @ObservedObject для каждого элемента, чтобы реагировать на изменения name
                     ConnectedDeviceRow(device: device)
                 }
