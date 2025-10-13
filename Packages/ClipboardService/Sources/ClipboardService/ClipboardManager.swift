@@ -1,73 +1,58 @@
 import AppKit
 import Combine
 import Foundation
+import CoreModels
 
 @MainActor
-public class ClipboardManager: ObservableObject {
-    // Using a publisher instead of a delegate. Anyone can subscribe.
-    @Published var currentText: String = ""
-
+public class ClipboardManager {
     private var pasteboard: NSPasteboard
     private var timer: Timer?
     private var cancellable: AnyCancellable?
     private var lastChangeCount: Int
 
-    // Dependency injection to allow mocking for tests.
+    public let messageStream: AsyncStream<BridgerMessage>
+    private let messageContinuation: AsyncStream<BridgerMessage>.Continuation
+
     public init(pasteboard: NSPasteboard = .general) {
         self.pasteboard = pasteboard
         self.lastChangeCount = pasteboard.changeCount
-        // Read the initial content of the clipboard on startup
-        if let initialText = pasteboard.string(forType: .string) {
-            self.currentText = initialText
-        }
+        (self.messageStream, self.messageContinuation) = AsyncStream.makeStream()
         start()
     }
 
-    /// Puts new text into the clipboard.
-    /// This method is the single source of truth for changing the clipboard from our code.
-    func copy(text: String) {
-        // If the text is the same, do nothing.
-        guard text != currentText else { return }
-
-        // Update the pasteboard.
+    /// Sets the text in the clipboard. Called from AppViewModel.
+    public func setText(_ text: String) {
+        // Avoid feedback loops by checking if the content is already there.
+        if pasteboard.string(forType: .string) == text {
+            return
+        }
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
-
-        // Update our internal state.
-        // `@Published` will notify all subscribers that the text has changed.
-        self.currentText = text
+        // Update our change count so we don't immediately fire an event.
         self.lastChangeCount = pasteboard.changeCount
     }
 
-    /// Starts monitoring the clipboard.
     private func start() {
-        // A timer is still the most reliable way for AppKit, unfortunately.
-        // Notifications and KVO for NSPasteboard are unreliable.
         self.cancellable = Timer.publish(every: 1.0, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
-                self?.checkPasteboard()
+                Task {
+                    await self?.checkPasteboard()
+                }
             }
     }
 
-    /// Stops monitoring the clipboard.
     public func stop() {
         cancellable?.cancel()
     }
 
-    /// Checks if something has been put into the clipboard from outside our app.
-    private func checkPasteboard() {
-        // If the change count hasn't changed, we're good.
+    private func checkPasteboard() async {
         guard pasteboard.changeCount != lastChangeCount else { return }
-
-        // The change count has changed! Let's update.
         lastChangeCount = pasteboard.changeCount
 
-        // Get the new text. If it's not text (e.g., files, images),
-        // we'll get nil and do nothing.
-        if let newText = pasteboard.string(forType: .string), newText != currentText {
-            // Update our publisher, and all subscribers will be notified immediately.
-            self.currentText = newText
+        if let newText = pasteboard.string(forType: .string) {
+            let message = BridgerMessage(type: .CLIPBOARD, value: newText)
+            messageContinuation.yield(message)
         }
     }
 }
