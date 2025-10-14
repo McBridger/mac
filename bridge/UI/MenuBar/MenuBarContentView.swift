@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct MenuBarContentView: View {
-    @ObservedObject var viewModel: AppViewModel
+    @EnvironmentObject var model: AppViewModel
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -20,28 +20,28 @@ struct MenuBarContentView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
                         
-            Button(action: {}) {
-                (Text("Status: ") + Text(viewModel.bluetoothPowerState.rawValue).foregroundStyle(viewModel.bluetoothPowerState == .poweredOn ? .green : .red))
+            Button(role: nil, action: {}) {
+                (Text("Status: ") + Text(model.bluetoothPowerState.rawValue).foregroundStyle(model.bluetoothPowerState == .poweredOn ? .green : .red))
             }
             .font(.caption)
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            
-            
+
+
             Button(action: {}) {
-                Text("Connection: \(viewModel.connectionState.rawValue)")
+                Text("Connection: \(model.connectionState.rawValue)")
                     .font(.caption)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            if !viewModel.connectedDevices.isEmpty {
+            if !model.connectedDevices.isEmpty {
                 Divider()
                 Button(action: {}) {
                     Text("Connected Devices:")
                         .font(.caption)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                ForEach(viewModel.connectedDevices) { device in
+                ForEach(model.connectedDevices) { device in
                     // Используем @ObservedObject для каждого элемента, чтобы реагировать на изменения name
                     ConnectedDeviceRow(device: device)
                 }

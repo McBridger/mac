@@ -54,7 +54,7 @@ class AppViewModel: ObservableObject {
         // Flow 1: Local clipboard changes -> Send over Bluetooth
         Task { [weak self] in
             guard let self = self else { return }
-            for await message in self.clipboardService.messageStream {
+            for await message in self.clipboardService.stream {
                 await self.bluetoothService.send(message: message)
                 await MainActor.run {
                     self.clipboardHistory.append(message.value)
@@ -66,7 +66,7 @@ class AppViewModel: ObservableObject {
         // Flow 2: Remote messages -> Apply to local clipboard
         Task { @MainActor [weak self] in
             guard let self = self else { return }
-            for await message in await self.bluetoothService.messages {
+            for await message in self.bluetoothService.messages {
                 if message.type == .CLIPBOARD {
                     self.clipboardService.setText(message.value)
                 }

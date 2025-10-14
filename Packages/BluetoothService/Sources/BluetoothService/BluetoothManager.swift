@@ -65,15 +65,15 @@ public actor BluetoothManager {
         (messageStream, messageContinuation) = AsyncStream.makeStream()
     }
 
-    public static func create() async -> BluetoothManager {
-        let manager = BluetoothManager()
-        await manager.activate()
-        return manager
+    public static func create() -> BluetoothManager {
+        return BluetoothManager()
     }
 
-    private func activate() {
+    public func activate() {
         // Accessing the lazy var triggers its initialization within the actor's context.
         _ = self.peripheralManager
+        // Yield the initial state right after activation
+        powerStateContinuation.yield(_powerState)
     }
 
     public func send(message: BridgerMessage) {

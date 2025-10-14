@@ -1,58 +1,63 @@
 import AppKit
-import Combine
 import Foundation
 import CoreModels
 
 @MainActor
 public class ClipboardManager {
-    private var pasteboard: NSPasteboard
-    private var timer: Timer?
-    private var cancellable: AnyCancellable?
+    private let pasteboard: NSPasteboard
+    private let pollingInterval: TimeInterval
     private var lastChangeCount: Int
+    
+    private var monitoringTask: Task<Void, Never>?
 
-    public let messageStream: AsyncStream<BridgerMessage>
-    private let messageContinuation: AsyncStream<BridgerMessage>.Continuation
+    public let stream: AsyncStream<BridgerMessage>
+    private let continuation: AsyncStream<BridgerMessage>.Continuation
 
-    public init(pasteboard: NSPasteboard = .general) {
+    public init(pasteboard: NSPasteboard = .general, pollingInterval: TimeInterval = 1.0) {
         self.pasteboard = pasteboard
+        self.pollingInterval = pollingInterval
         self.lastChangeCount = pasteboard.changeCount
-        (self.messageStream, self.messageContinuation) = AsyncStream.makeStream()
-        start()
-    }
 
-    /// Sets the text in the clipboard. Called from AppViewModel.
+        (self.stream, self.continuation) = AsyncStream.makeStream()
+    }
+    
+    deinit {
+        monitoringTask?.cancel()
+    }
+    
     public func setText(_ text: String) {
-        // Avoid feedback loops by checking if the content is already there.
         if pasteboard.string(forType: .string) == text {
             return
         }
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
-        // Update our change count so we don't immediately fire an event.
         self.lastChangeCount = pasteboard.changeCount
     }
-
-    private func start() {
-        self.cancellable = Timer.publish(every: 1.0, on: .main, in: .common)
-            .autoconnect()
-            .sink { [weak self] _ in
-                Task {
-                    await self?.checkPasteboard()
+    
+    public func start() {
+        monitoringTask?.cancel()
+        monitoringTask = nil
+        
+        monitoringTask = Task {
+            while !Task.isCancelled {
+                checkPasteboard()
+                do {
+                    try await Task.sleep(nanoseconds: UInt64(pollingInterval * 1_000_000_000))
+                } catch {
+                    break
                 }
             }
+        }
     }
-
-    public func stop() {
-        cancellable?.cancel()
-    }
-
-    private func checkPasteboard() async {
+    
+    private func checkPasteboard() {
         guard pasteboard.changeCount != lastChangeCount else { return }
+        
         lastChangeCount = pasteboard.changeCount
 
         if let newText = pasteboard.string(forType: .string) {
             let message = BridgerMessage(type: .CLIPBOARD, value: newText)
-            messageContinuation.yield(message)
+            continuation.yield(message)
         }
     }
 }
