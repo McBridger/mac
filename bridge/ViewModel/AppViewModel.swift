@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 import CoreModels
 import BluetoothService
 import ClipboardService
@@ -15,7 +16,7 @@ class AppViewModel: ObservableObject {
     private let bluetoothService: BluetoothManager
     private let clipboardService: ClipboardManager
 
-    private var activeTasks = Set<Task<Void, Never>>()
+    private var cancellables = Set<AnyCancellable>()
 
     init(bluetoothService: BluetoothManager, clipboardService: ClipboardManager) {
         self.bluetoothService = bluetoothService
@@ -25,59 +26,40 @@ class AppViewModel: ObservableObject {
 
     private func setupBindings() {
         // MARK: - Bluetooth State Bindings
-        Task { @MainActor [weak self] in
-            guard let self = self else { return }
-            for await state in self.bluetoothService.powerState {
-                self.bluetoothPowerState = state
-            }
-        }
-        .store(in: &activeTasks)
+        bluetoothService.powerState
+            .receive(on: DispatchQueue.main)
+            .assign(to: \.bluetoothPowerState, on: self)
+            .store(in: &cancellables)
 
-        Task { @MainActor [weak self] in
-            guard let self = self else { return }
-            for await state in self.bluetoothService.connectionState {
-                self.connectionState = state
-            }
-        }
-        .store(in: &activeTasks)
+        bluetoothService.connectionState
+            .receive(on: DispatchQueue.main)
+            .assign(to: \.connectionState, on: self)
+            .store(in: &cancellables)
             
-        Task { @MainActor [weak self] in
-            guard let self = self else { return }
-            for await devices in self.bluetoothService.deviceList {
-                self.connectedDevices = devices
-            }
-        }
-        .store(in: &activeTasks)
+        bluetoothService.deviceList
+            .receive(on: DispatchQueue.main)
+            .assign(to: \.connectedDevices, on: self)
+            .store(in: &cancellables)
         
-        // MARK: - Clipboard Flow Bindings
+        // MARK: - Flow Bindings
         
         // Flow 1: Local clipboard changes -> Send over Bluetooth
-        Task { [weak self] in
-            guard let self = self else { return }
-            for await message in self.clipboardService.stream {
-                await self.bluetoothService.send(message: message)
-                await MainActor.run {
-                    self.clipboardHistory.append(message.value)
-                }
+        clipboardService.publisher
+            .sink { [weak self] message in
+                self?.bluetoothService.send(message: message)
+                self?.clipboardHistory.append(message.value)
             }
-        }
-        .store(in: &activeTasks)
+            .store(in: &cancellables)
 
         // Flow 2: Remote messages -> Apply to local clipboard
-        Task { @MainActor [weak self] in
-            guard let self = self else { return }
-            for await message in self.bluetoothService.messages {
+        bluetoothService.messages
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] message in
                 if message.type == .CLIPBOARD {
-                    self.clipboardService.setText(message.value)
+                    self?.clipboardService.setText(message.value)
                 }
             }
-        }
-        .store(in: &activeTasks)
+            .store(in: &cancellables)
     }
 }
 
-extension Task where Success == Void, Failure == Never {
-    func store(in set: inout Set<Task<Void, Never>>) {
-        set.insert(self)
-    }
-}

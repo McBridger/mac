@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 // MARK: - Message Protocol Structs
 
@@ -30,11 +31,16 @@ public struct BridgerMessage: Codable, Sendable {
         self.timestamp = timestamp
     }
     
-    // Метод для кодирования сообщения в Data для BLE
-    public func toData() throws -> Data {
+    public func toData() -> Data? {
         let transferMessage = TransferMessage(t: self.type.rawValue, p: self.value)
         let encoder = JSONEncoder()
-        return try encoder.encode(transferMessage)
+        
+        do {
+            return try encoder.encode(transferMessage)
+        } catch {
+            Logger.coreModels.error("Failed to encode BridgerMessage: \(error.localizedDescription)")
+            return nil
+        }
     }
     
     // Статический метод для создания BridgerMessage из полученных BLE Data
@@ -59,4 +65,9 @@ enum BridgerMessageError: Error, LocalizedError {
             return "Unknown message type received."
         }
     }
+}
+
+extension Logger {
+    private static let subsystem = Bundle.main.bundleIdentifier!
+    static let coreModels = Logger(subsystem: subsystem, category: "CoreModels")
 }

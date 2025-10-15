@@ -15,7 +15,7 @@ class AppLogic: ObservableObject {
         print("Starting app setup...")
         
         // 1. Создаем зависимости
-        let bluetoothService = BluetoothManager.create()
+        let bluetoothService = BluetoothManager()
         let clipboardService = ClipboardManager()
 
         // 2. Создаем ViewModel и связываем все вместе
@@ -35,7 +35,8 @@ class AppLogic: ObservableObject {
         }
 
         // 4. Активируем Bluetooth сервис. Теперь ViewModel готов слушать.
-        await bluetoothService.activate()
+        bluetoothService.activate()
+        clipboardService.start()
         print("App setup finished. ViewModel is ready.")
     }
 }
