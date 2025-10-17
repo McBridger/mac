@@ -2,40 +2,27 @@ import Foundation
 import CoreBluetooth
 import SystemConfiguration
 import OSLog
-import Combine // <-- Наш главный герой
+import Combine
 import CoreModels
 
 // Класс должен быть NSObject, чтобы быть делегатом, и ObservableObject для удобства
 public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, ObservableObject {
 
-    // MARK: - Public Publishers (гораздо лаконичнее)
-    public var powerState: AnyPublisher<BluetoothPowerState, Never> { powerStateSubject.eraseToAnyPublisher() }
-    public var connectionState: AnyPublisher<ConnectionState, Never> { connectionStateSubject.eraseToAnyPublisher() }
-    public var deviceList: AnyPublisher<[DeviceInfo], Never> { deviceListPublisher } // <-- Особый случай для debounce
+    // MARK: - Public Publishers
+    @State public private(set) var power: BluetoothPowerState = .poweredOff
+    @State public private(set) var connection: ConnectionState = .disconnected
+    @State public private(set) var devices: [DeviceInfo] = []
     public var messages: AnyPublisher<BridgerMessage, Never> { messageSubject.eraseToAnyPublisher() }
 
-    // MARK: - Private State (защищено через DispatchQueue)
-    private var _powerState: BluetoothPowerState = .poweredOff
-    private var _connectionState: ConnectionState = .disconnected
-    private var devices: [UUID: DeviceInfo] = [:]
+    // MARK: - Private State
+    private var devicesMap: [UUID: DeviceInfo] = [:]
     private var textCharacteristic: CBMutableCharacteristic?
     private var nameRequestTasks: [UUID: Timer] = [:]
     private let nameRequestTimeout: TimeInterval = 5.0
 
     // MARK: - Private Combine Subjects & Cancellables
-    private let powerStateSubject = PassthroughSubject<BluetoothPowerState, Never>()
-    private let connectionStateSubject = PassthroughSubject<ConnectionState, Never>()
-    private let deviceListSubject = PassthroughSubject<[DeviceInfo], Never>()
     private let messageSubject = PassthroughSubject<BridgerMessage, Never>()
-    private lazy var deviceListPublisher: AnyPublisher<[DeviceInfo], Never> = {
-        deviceListSubject
-            .debounce(for: .milliseconds(100), scheduler: queue) // <-- Декларативный debounce!
-            .eraseToAnyPublisher()
-    }()
-        
     private let sendSubject = PassthroughSubject<BridgerMessage, Never>()
-
-  
     private var cancellables = Set<AnyCancellable>()
 
     // MARK: - CoreBluetooth Properties
@@ -52,13 +39,15 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, Observable
     // MARK: - Lifecycle
     public override init() {
         super.init()
+        
+        queue.async { _ = self.peripheralManager }
 
         sendSubject
             .receive(on: queue)
-            .sink { [weak self] message in 
+            .sink { [weak self] message in
                 guard let self = self else { return }
-                guard self._powerState == .poweredOn else { return }
-                guard !self.devices.isEmpty else { return }
+                guard self.power == .poweredOn else { return }
+                guard !self.devicesMap.isEmpty else { return }
                 guard let char = self.textCharacteristic else { return }
                 guard let data = message.toData() else { return }
 
@@ -69,13 +58,6 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, Observable
             .store(in: &cancellables)
     }
     
-    public func activate() {
-        // Просто обращаемся к lazy var, чтобы запустить инициализацию на нашей очереди
-        queue.async {
-            _ = self.peripheralManager
-        }
-    }
-
     public func send(message: BridgerMessage) {
         sendSubject.send(message)
     }
@@ -84,21 +66,17 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, Observable
     
     public func peripheralManagerDidUpdateState(_ peripheral: CBPeripheralManager) {
         let newState: BluetoothPowerState = (peripheral.state == .poweredOn) ? .poweredOn : .poweredOff
-        guard self._powerState != newState else { return }
+        if self.power == newState { return }
+        updateState(state: &self.power, to: newState)
+        Logger.bluetooth.info("Bluetooth state changed: \(self.power.rawValue)")
+
+        if self.power == .poweredOn { setupService(); return }
         
-        self._powerState = newState
-        Logger.bluetooth.info("Bluetooth state changed: \(newState.rawValue)")
-        powerStateSubject.send(newState)
-        
-        if newState == .poweredOn {
-            setupService()
-        } else {
-            devices.removeAll()
-            nameRequestTasks.values.forEach { $0.invalidate() }
-            nameRequestTasks.removeAll()
-            updateConnectionState(to: .disconnected)
-            reportUpdatedDeviceList() // Немедленное обновление
-        }
+        devicesMap.removeAll()
+        nameRequestTasks.values.forEach { $0.invalidate() }
+        nameRequestTasks.removeAll()
+        updateState(state: &self.connection, to: .disconnected)
+        reportUpdatedDeviceList()
     }
     
     public func peripheralManager(_ peripheral: CBPeripheralManager, didAdd service: CBService, error: Error?) {
@@ -111,15 +89,20 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, Observable
     
     public func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didSubscribeTo characteristic: CBCharacteristic) {
         let centralId = central.identifier
-        guard devices[centralId] == nil else { return }
+        guard devicesMap[centralId] == nil else { return }
         
+        let isFirstDevice = devicesMap.isEmpty
         let newDevice = DeviceInfo(id: centralId, name: "Unknown soldier...")
-        devices[centralId] = newDevice
-        updateConnectionState(to: .connected)
+        devicesMap[centralId] = newDevice
+        
+        if isFirstDevice { updateState(state: &self.connection, to: .connected) }
         
         Logger.bluetooth.info("Anonymus connected: \(centralId.uuidString). Waiting for him to introduce himself.")
         
-        let timer = Timer.scheduledTimer(withTimeInterval: nameRequestTimeout, repeats: false) { [weak self] _ in
+        let timer = Timer.scheduledTimer(
+            withTimeInterval: nameRequestTimeout, 
+            repeats: false
+        ) { [weak self] _ in
             self?.handleDeviceTimeout(centralId)
         }
         nameRequestTasks[centralId] = timer
@@ -129,14 +112,14 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, Observable
     
     public func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didUnsubscribeFrom characteristic: CBCharacteristic) {
         let centralId = central.identifier
-        if let disconnectedDevice = devices.removeValue(forKey: centralId) {
+        if let disconnectedDevice = devicesMap.removeValue(forKey: centralId) {
             nameRequestTasks[centralId]?.invalidate()
             nameRequestTasks.removeValue(forKey: centralId)
             
             Logger.bluetooth.info("Device \(disconnectedDevice.name) (\(centralId.uuidString)) has ridden off into the sunset.")
 
-            if devices.isEmpty {
-                updateConnectionState(to: .advertising)
+            if devicesMap.isEmpty {
+                updateState(state: &self.connection, to: .advertising)
             }
             
             reportUpdatedDeviceList()
@@ -165,7 +148,7 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, Observable
     }
     
     private func startAdvertising() {
-        guard _connectionState != .advertising else { return }
+        guard self.connection != .advertising else { return }
         
         let deviceName = SCDynamicStoreCopyComputerName(nil, nil) as String? ?? "McBridge"
         let advertisementData: [String: Any] = [
@@ -174,7 +157,7 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, Observable
         ]
         
         peripheralManager.startAdvertising(advertisementData)
-        updateConnectionState(to: .advertising)
+        updateState(state: &self.connection, to: .advertising)
         Logger.bluetooth.info("Started yelling on the air with the handle \(deviceName).")
     }
     
@@ -195,7 +178,7 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, Observable
     }
     
     private func handleDeviceNamed(id: UUID, name: String) {
-        devices[id]?.name = name
+        devicesMap[id]?.name = name
         nameRequestTasks[id]?.invalidate()
         nameRequestTasks.removeValue(forKey: id)
         Logger.bluetooth.info("Device \(id.uuidString) has introduced itself as \(name). Nice to meet you.")
@@ -203,22 +186,21 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, Observable
     }
 
     private func handleDeviceTimeout(_ deviceId: UUID) {
-        if let timedOutDevice = devices[deviceId], timedOutDevice.name == "Unknown soldier..." {
+        if let timedOutDevice = devicesMap[deviceId], timedOutDevice.name == "Unknown soldier..." {
             Logger.bluetooth.warning("Device \(deviceId.uuidString) timed out without introducing itself. Presumed shy.")
         }
         nameRequestTasks.removeValue(forKey: deviceId)
     }
-    
-    private func updateConnectionState(to newState: ConnectionState) {
-        guard self._connectionState != newState else { return }
-        self._connectionState = newState
-        connectionStateSubject.send(newState)
-    }
 
     private func reportUpdatedDeviceList() {
-        let sortedDevices = Array(devices.values).sorted { $0.name < $1.name }
-        deviceListSubject.send(sortedDevices)
+        let sortedDevices = Array(devicesMap.values).sorted { $0.name < $1.name }
+        self.devices = sortedDevices
         Logger.bluetooth.debug("Sending updated device list: \(sortedDevices.count) devices")
+    }
+
+    private func updateState<T: Equatable>(state: inout T, to newValue: T) {
+        guard state != newValue else { return }
+        state = newValue
     }
 }
 

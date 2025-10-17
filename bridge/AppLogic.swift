@@ -34,8 +34,7 @@ class AppLogic: ObservableObject {
             print("Notification permissions request failed: \(error.localizedDescription)")
         }
 
-        // 4. Активируем Bluetooth сервис. Теперь ViewModel готов слушать.
-        bluetoothService.activate()
+        // 4. Запускаем Clipboard сервис. BluetoothManager активируется в init().
         clipboardService.start()
         print("App setup finished. ViewModel is ready.")
     }

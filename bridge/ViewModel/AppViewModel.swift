@@ -26,17 +26,17 @@ class AppViewModel: ObservableObject {
 
     private func setupBindings() {
         // MARK: - Bluetooth State Bindings
-        bluetoothService.powerState
+        bluetoothService.$power
             .receive(on: DispatchQueue.main)
             .assign(to: \.bluetoothPowerState, on: self)
             .store(in: &cancellables)
 
-        bluetoothService.connectionState
+        bluetoothService.$connection
             .receive(on: DispatchQueue.main)
             .assign(to: \.connectionState, on: self)
             .store(in: &cancellables)
             
-        bluetoothService.deviceList
+        bluetoothService.$devices
             .receive(on: DispatchQueue.main)
             .assign(to: \.connectedDevices, on: self)
             .store(in: &cancellables)
