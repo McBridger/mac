@@ -12,7 +12,7 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, Observable
     @State public private(set) var power: BluetoothPowerState = .poweredOff
     @State public private(set) var connection: ConnectionState = .disconnected
     @State public private(set) var devices: [DeviceInfo] = []
-    public var messages: AnyPublisher<BridgerMessage, Never> { messageSubject.eraseToAnyPublisher() }
+    @Event public private(set) var message: BridgerMessage?
 
     // MARK: - Private State
     private var devicesMap: [UUID: DeviceInfo] = [:]
@@ -21,12 +21,10 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, Observable
     private let nameRequestTimeout: TimeInterval = 5.0
 
     // MARK: - Private Combine Subjects & Cancellables
-    private let messageSubject = PassthroughSubject<BridgerMessage, Never>()
     private let sendSubject = PassthroughSubject<BridgerMessage, Never>()
     private var cancellables = Set<AnyCancellable>()
 
     // MARK: - CoreBluetooth Properties
-    // Все вызовы CoreBluetooth будут выполняться на этой очереди
     private let queue = DispatchQueue(label: "com.mcbridge.bluetooth-background-queue")
     private lazy var peripheralManager: CBPeripheralManager = {
         CBPeripheralManager(delegate: self, queue: self.queue)
@@ -62,7 +60,7 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, Observable
         sendSubject.send(message)
     }
 
-    // MARK: - Delegate Methods (ВЫПОЛНЯЮТСЯ НА НАШЕЙ `queue`)
+    // MARK: - Delegate Methods
     
     public func peripheralManagerDidUpdateState(_ peripheral: CBPeripheralManager) {
         let newState: BluetoothPowerState = (peripheral.state == .poweredOn) ? .poweredOn : .poweredOff
@@ -133,7 +131,7 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, Observable
         peripheral.respond(to: request, withResult: .success)
     }
     
-    // MARK: - Private Logic (все вызываются изнутри `queue`)
+    // MARK: - Private Logic
     
     private func setupService() {
         let service = CBMutableService(type: bridgerServiceUUID, primary: true)
@@ -170,7 +168,7 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, Observable
             case .DEVICE_NAME:
                 handleDeviceNamed(id: centralID, name: message.value)
             case .CLIPBOARD:
-                messageSubject.send(message)
+                self.message = message
             }
         } catch {
             Logger.bluetooth.error("Error decoding data from \(centralID.uuidString): \(error.localizedDescription)")

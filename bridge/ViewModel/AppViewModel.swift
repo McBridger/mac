@@ -44,7 +44,7 @@ class AppViewModel: ObservableObject {
         // MARK: - Flow Bindings
         
         // Flow 1: Local clipboard changes -> Send over Bluetooth
-        clipboardService.publisher
+        clipboardService.$update
             .sink { [weak self] message in
                 self?.bluetoothService.send(message: message)
                 self?.clipboardHistory.append(message.value)
@@ -52,7 +52,7 @@ class AppViewModel: ObservableObject {
             .store(in: &cancellables)
 
         // Flow 2: Remote messages -> Apply to local clipboard
-        bluetoothService.messages
+        bluetoothService.$message
             .receive(on: DispatchQueue.main)
             .sink { [weak self] message in
                 if message.type == .CLIPBOARD {
