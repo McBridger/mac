@@ -29,10 +29,10 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, Observable
     private lazy var peripheralManager: CBPeripheralManager = {
         CBPeripheralManager(delegate: self, queue: self.queue)
     }()
-    
-    private let advertiseUUID = CBUUID(string: "fdd2")
-    private let bridgerServiceUUID = CBUUID(string: "ccfa23b4-ba6f-448a-827d-c25416ec432e")
-    private let characteristicUUID = CBUUID(string: "315eca9d-0dbc-498d-bb4d-1d59d7c5bc3b")
+
+    private let advertiseUUID = CBUUID(string: AppConfig.advertiseID)
+    private let serviceUUID = CBUUID(string: AppConfig.serviceID)
+    private let characteristicUUID = CBUUID(string: AppConfig.characteristicID)
 
     // MARK: - Lifecycle
     public override init() {
@@ -134,7 +134,7 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, Observable
     // MARK: - Private Logic
     
     private func setupService() {
-        let service = CBMutableService(type: bridgerServiceUUID, primary: true)
+        let service = CBMutableService(type: serviceUUID, primary: true)
         self.textCharacteristic = CBMutableCharacteristic(
             type: characteristicUUID,
             properties: [.read, .write, .notifyEncryptionRequired],

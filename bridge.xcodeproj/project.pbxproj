@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		8A9BCD902EA81445004C413A /* Shared.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 8A9BCD8F2EA81445004C413A /* Shared.xcconfig */; };
 		8AA76B9E2E957E800013FCA6 /* NotificationService in Frameworks */ = {isa = PBXBuildFile; productRef = 8AA76B9D2E957E800013FCA6 /* NotificationService */; };
 		8AA76BA12E957E950013FCA6 /* ClipboardService in Frameworks */ = {isa = PBXBuildFile; productRef = 8AA76BA02E957E950013FCA6 /* ClipboardService */; };
 		8AA76BA42E957EA30013FCA6 /* BluetoothService in Frameworks */ = {isa = PBXBuildFile; productRef = 8AA76BA32E957EA30013FCA6 /* BluetoothService */; };
@@ -34,11 +35,25 @@
 		847C33C62E24017600B265E0 /* bridge.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = bridge.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		847C33D72E24017700B265E0 /* bridgeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = bridgeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		847C33E12E24017700B265E0 /* bridgeUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = bridgeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		8A9BCD8F2EA81445004C413A /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Shared.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		8A9BCD942EA964E9004C413A /* Exceptions for "bridge" folder in "bridge" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 847C33C52E24017600B265E0 /* bridge */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		847C33C82E24017600B265E0 /* bridge */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				8A9BCD942EA964E9004C413A /* Exceptions for "bridge" folder in "bridge" target */,
+			);
 			path = bridge;
 			sourceTree = "<group>";
 		};
@@ -90,6 +105,7 @@
 				847C33DA2E24017700B265E0 /* bridgeTests */,
 				847C33E42E24017700B265E0 /* bridgeUITests */,
 				847C33C72E24017600B265E0 /* Products */,
+				8A9BCD8F2EA81445004C413A /* Shared.xcconfig */,
 			);
 			sourceTree = "<group>";
 		};
@@ -233,6 +249,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8A9BCD902EA81445004C413A /* Shared.xcconfig in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -292,6 +309,7 @@
 /* Begin XCBuildConfiguration section */
 		847C33E92E24017700B265E0 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 8A9BCD8F2EA81445004C413A /* Shared.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -355,6 +373,7 @@
 		};
 		847C33EA2E24017700B265E0 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 8A9BCD8F2EA81445004C413A /* Shared.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -423,6 +442,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = bridge/Info.plist;
 				INFOPLIST_KEY_LSUIElement = NO;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Это приложение использует Bluetooth для обмена данными";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -453,6 +473,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = bridge/Info.plist;
 				INFOPLIST_KEY_LSUIElement = NO;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Это приложение использует Bluetooth для обмена данными";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";

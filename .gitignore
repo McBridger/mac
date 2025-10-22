@@ -26,3 +26,6 @@ DerivedData/
 *.bak
 *.swp
 *~
+
+*.xcconfig
+.env
