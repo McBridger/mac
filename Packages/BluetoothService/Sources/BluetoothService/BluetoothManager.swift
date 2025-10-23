@@ -5,7 +5,6 @@ import OSLog
 import Combine
 import CoreModels
 
-// Класс должен быть NSObject, чтобы быть делегатом, и ObservableObject для удобства
 public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, ObservableObject {
 
     // MARK: - Public Publishers

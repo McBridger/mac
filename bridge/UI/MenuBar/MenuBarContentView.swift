@@ -13,7 +13,7 @@ struct MenuBarContentView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             
-            // Оборачиваем текст в кнопки с пустым действием (чтобы добиться правильныъ цветов для текста)
+            // Wrap text in buttons with an empty action to achieve the correct text colors
             Button(action: {}) {
                 Text("Bridger")
                     .font(.headline)
@@ -42,7 +42,6 @@ struct MenuBarContentView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 ForEach(model.connectedDevices) { device in
-                    // Используем @ObservedObject для каждого элемента, чтобы реагировать на изменения name
                     ConnectedDeviceRow(device: device)
                 }
             }

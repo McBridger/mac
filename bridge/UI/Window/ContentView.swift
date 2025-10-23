@@ -16,7 +16,7 @@ struct ContentView: View {
             Text("Bridge: macOS <-> Android")
                 .font(.largeTitle)
 
-            // Отображаем статус Bluetooth
+            // Display Bluetooth status
             HStack {
                 Text("Bluetooth Status:")
                 Text(viewModel.bluetoothPowerState.rawValue)
@@ -25,12 +25,12 @@ struct ContentView: View {
             
             Divider()
 
-            // Секция для подключенных устройств
+            // Section for connected devices
             VStack(alignment: .leading) {
-                Text("Подключенные устройства:")
+                Text("Connected Devices:")
                     .font(.headline)
                 if viewModel.connectedDevices.isEmpty {
-                    Text("Нет подключенных устройств.")
+                    Text("No connected devices.")
                         .foregroundColor(.gray)
                 } else {
                     ForEach(viewModel.connectedDevices) { device in
@@ -41,6 +41,6 @@ struct ContentView: View {
             
         }
         .padding()
-        .frame(minWidth: 400, minHeight: 400) // Задаем минимальный размер окна
+        .frame(minWidth: 400, minHeight: 400) // Set the minimum window size
     }
 }

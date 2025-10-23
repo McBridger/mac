@@ -4,7 +4,7 @@ import Foundation
 
 public class DeviceInfo: @unchecked Sendable, Identifiable, ObservableObject, Equatable {
     public let id: UUID
-    @Published public var name: String // Теперь имя тоже @Published
+    @Published public var name: String
     
     public init(id: UUID, name: String) {
         self.id = id

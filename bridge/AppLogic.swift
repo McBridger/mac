@@ -3,26 +3,24 @@ import UserNotifications
 import BluetoothService
 import ClipboardService
 
-@MainActor // Гарантирует, что все обновления @Published происходят в главном потоке
+@MainActor
 class AppLogic: ObservableObject {
     @Published var model: AppViewModel?
 
-    // Асинхронная функция, которая выполняет всю тяжелую работу
     func setup() async {
-        // Убедимся, что не запускаем настройку дважды
         guard model == nil else { return }
         
         print("Starting app setup...")
         
-        // 1. Создаем зависимости
+        // 1. Create dependencies
         let bluetoothService = BluetoothManager()
         let clipboardService = ClipboardManager()
 
-        // 2. Создаем ViewModel и связываем все вместе
+        // 2. Create the ViewModel and bind everything together
         self.model = AppViewModel(bluetoothService: bluetoothService, clipboardService: clipboardService)
         print("ViewModel created. Services are bound.")
 
-        // 3. Запрашиваем разрешения
+        // 3. Request permissions
         do {
             let granted = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
             if granted {
@@ -34,7 +32,7 @@ class AppLogic: ObservableObject {
             print("Notification permissions request failed: \(error.localizedDescription)")
         }
 
-        // 4. Запускаем Clipboard сервис. BluetoothManager активируется в init().
+        // 4. Start the Clipboard service. BluetoothManager is activated in its init().
         clipboardService.start()
         print("App setup finished. ViewModel is ready.")
     }

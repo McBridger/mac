@@ -8,8 +8,6 @@ public enum MessageType: Int, Codable, Sendable {
     case DEVICE_NAME = 1
 }
 
-// Внутренняя структура для кодирования/декодирования по BLE
-// Соответствует TransferMessage из Java-примера
 struct TransferMessage: Codable {
     let t: Int // type
     let p: String // payload
@@ -22,7 +20,6 @@ public struct BridgerMessage: Codable, Sendable {
     public let id: UUID
     public let timestamp: Date
     
-    // Инициализатор для создания сообщения для отправки
     public init(type: MessageType, value: String, address: String? = nil, id: UUID = UUID(), timestamp: Date = Date()) {
         self.type = type
         self.value = value
@@ -43,7 +40,7 @@ public struct BridgerMessage: Codable, Sendable {
         }
     }
     
-    // Статический метод для создания BridgerMessage из полученных BLE Data
+    // Static method to create a BridgerMessage from received BLE Data
     public static func fromData(_ data: Data, address: String? = nil) throws -> BridgerMessage {
         let decoder = JSONDecoder()
         let transferMessage = try decoder.decode(TransferMessage.self, from: data)

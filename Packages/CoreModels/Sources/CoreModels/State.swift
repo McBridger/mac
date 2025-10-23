@@ -4,13 +4,13 @@ import Combine
 public struct State<Value> {
     public let subject: CurrentValueSubject<Value, Never>
     
-    // Прямой доступ к значению (для чтения и записи)
+    // Direct access to the value (for reading and writing)
     public var wrappedValue: Value {
         get { subject.value }
         set { subject.send(newValue) }
     }
     
-    // Доступ к AnyPublisher (для подписки)
+    // Access to AnyPublisher (for subscribing)
     public var projectedValue: AnyPublisher<Value, Never> {
         return subject.eraseToAnyPublisher()
     }
