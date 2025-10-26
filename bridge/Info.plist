@@ -2,11 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>BLE_ADVERTISE_UUID</key>
-	<string>${BLE_ADVERTISE_UUID}</string>
-	<key>BLE_CHARACTERISTIC_UUID</key>
-	<string>${BLE_CHARACTERISTIC_UUID}</string>
-	<key>BLE_SERVICE_UUID</key>
-	<string>${BLE_SERVICE_UUID}</string>
+	<key>ADVERTISE_UUID</key>
+	<string>${ADVERTISE_UUID}</string>
+	<key>CHARACTERISTIC_UUID</key>
+	<string>${CHARACTERISTIC_UUID}</string>
+	<key>SERVICE_UUID</key>
+	<string>${SERVICE_UUID}</string>
 </dict>
 </plist>

@@ -2,9 +2,9 @@ import Foundation
 import CoreBluetooth
 
 public enum AppConfig {
-    public static let advertiseID: String = try! Config.value(for: "BLE_ADVERTISE_UUID")
-    public static let serviceID: String = try! Config.value(for: "BLE_SERVICE_UUID")
-    public static let characteristicID: String = try! Config.value(for: "BLE_CHARACTERISTIC_UUID")
+    public static let advertiseID: String = try! Config.value(for: "ADVERTISE_UUID")
+    public static let serviceID: String = try! Config.value(for: "SERVICE_UUID")
+    public static let characteristicID: String = try! Config.value(for: "CHARACTERISTIC_UUID")
 }
 
 enum Config {

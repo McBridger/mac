@@ -15,6 +15,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Create xcconfig file
+        run: echo "${{ secrets.SHARED_BLE_CONFIG }}" > Shared.xcconfig
+
       - name: Build and Archive
         run: |
           xcodebuild archive \
@@ -29,8 +32,7 @@ jobs:
           xcodebuild -exportArchive \
             -archivePath ./build/bridge.xcarchive \
             -exportPath ./build \
-            -exportOptionsPlist ./bridge/Info.plist \
-            "CODE_SIGNING_ALLOWED=NO"
+            -exportOptionsPlist ./ExportOptions.plist
 
       - name: Create DMG
         run: |
