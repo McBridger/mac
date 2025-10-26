@@ -24,6 +24,7 @@ jobs:
             -project bridge.xcodeproj \
             -scheme bridge \
             -archivePath ./build/bridge.xcarchive \
+            DEVELOPMENT_TEAM="" \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO
       
