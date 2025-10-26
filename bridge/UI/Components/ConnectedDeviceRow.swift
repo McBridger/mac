@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreModels
 
 struct ConnectedDeviceRow: View {
     @ObservedObject var device: DeviceInfo

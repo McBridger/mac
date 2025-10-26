@@ -1,0 +1,51 @@
+name: Build and Release macOS App
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 0.0.1)'
+        required: true
+        default: '0.0.1'
+
+jobs:
+  build-and-release:
+    runs-on: macos-latest # We need macOS to build a macOS app
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_15.0.app/Contents/Developer
+
+      - name: Build and Archive
+        run: |
+          xcodebuild archive \
+            -project bridge.xcodeproj \
+            -scheme bridge \
+            -archivePath ./build/bridge.xcarchive \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO
+      
+      - name: Export the App
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath ./build/bridge.xcarchive \
+            -exportPath ./build \
+            -exportOptionsPlist ./bridge/Info.plist \
+            "CODE_SIGNING_ALLOWED=NO"
+
+      - name: Create DMG
+        run: |
+          hdiutil create -volname "McBridger" -srcfolder "./build/bridge.app" -ov -format UDZO "McBridger-${{ github.event.inputs.version }}.dmg"
+
+      - name: Create Release and Upload DMG
+        uses: softprops/action-gh-release@v1
+        with:
+          files: "McBridger-${{ github.event.inputs.version }}.dmg"
+          tag_name: v${{ github.event.inputs.version }}-mac
+          release_name: Release v${{ github.event.inputs.version }}-mac
+          body: |
+            Manual release for version ${{ github.event.inputs.version }}.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -6,6 +6,14 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		8A9BCD902EA81445004C413A /* Shared.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 8A9BCD8F2EA81445004C413A /* Shared.xcconfig */; };
+		8AA76B9E2E957E800013FCA6 /* NotificationService in Frameworks */ = {isa = PBXBuildFile; productRef = 8AA76B9D2E957E800013FCA6 /* NotificationService */; };
+		8AA76BA12E957E950013FCA6 /* ClipboardService in Frameworks */ = {isa = PBXBuildFile; productRef = 8AA76BA02E957E950013FCA6 /* ClipboardService */; };
+		8AA76BA42E957EA30013FCA6 /* BluetoothService in Frameworks */ = {isa = PBXBuildFile; productRef = 8AA76BA32E957EA30013FCA6 /* BluetoothService */; };
+		8AA76BA72E957EB00013FCA6 /* CoreModels in Frameworks */ = {isa = PBXBuildFile; productRef = 8AA76BA62E957EB00013FCA6 /* CoreModels */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		847C33D82E24017700B265E0 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -27,11 +35,25 @@
 		847C33C62E24017600B265E0 /* bridge.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = bridge.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		847C33D72E24017700B265E0 /* bridgeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = bridgeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		847C33E12E24017700B265E0 /* bridgeUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = bridgeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		8A9BCD8F2EA81445004C413A /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Shared.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		8A9BCD942EA964E9004C413A /* Exceptions for "bridge" folder in "bridge" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 847C33C52E24017600B265E0 /* bridge */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		847C33C82E24017600B265E0 /* bridge */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				8A9BCD942EA964E9004C413A /* Exceptions for "bridge" folder in "bridge" target */,
+			);
 			path = bridge;
 			sourceTree = "<group>";
 		};
@@ -52,6 +74,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8AA76B9E2E957E800013FCA6 /* NotificationService in Frameworks */,
+				8AA76BA12E957E950013FCA6 /* ClipboardService in Frameworks */,
+				8AA76BA42E957EA30013FCA6 /* BluetoothService in Frameworks */,
+				8AA76BA72E957EB00013FCA6 /* CoreModels in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -79,6 +105,7 @@
 				847C33DA2E24017700B265E0 /* bridgeTests */,
 				847C33E42E24017700B265E0 /* bridgeUITests */,
 				847C33C72E24017600B265E0 /* Products */,
+				8A9BCD8F2EA81445004C413A /* Shared.xcconfig */,
 			);
 			sourceTree = "<group>";
 		};
@@ -112,6 +139,10 @@
 			);
 			name = bridge;
 			packageProductDependencies = (
+				8AA76B9D2E957E800013FCA6 /* NotificationService */,
+				8AA76BA02E957E950013FCA6 /* ClipboardService */,
+				8AA76BA32E957EA30013FCA6 /* BluetoothService */,
+				8AA76BA62E957EB00013FCA6 /* CoreModels */,
 			);
 			productName = bridge;
 			productReference = 847C33C62E24017600B265E0 /* bridge.app */;
@@ -195,6 +226,12 @@
 			);
 			mainGroup = 847C33BD2E24017600B265E0;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				8AA76B9C2E957E800013FCA6 /* XCLocalSwiftPackageReference "Packages/NotificationService" */,
+				8AA76B9F2E957E950013FCA6 /* XCLocalSwiftPackageReference "Packages/ClipboardService" */,
+				8AA76BA22E957EA30013FCA6 /* XCLocalSwiftPackageReference "Packages/BluetoothService" */,
+				8AA76BA52E957EB00013FCA6 /* XCLocalSwiftPackageReference "Packages/CoreModels" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 847C33C72E24017600B265E0 /* Products */;
 			projectDirPath = "";
@@ -212,6 +249,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8A9BCD902EA81445004C413A /* Shared.xcconfig in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -271,6 +309,7 @@
 /* Begin XCBuildConfiguration section */
 		847C33E92E24017700B265E0 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 8A9BCD8F2EA81445004C413A /* Shared.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -334,6 +373,7 @@
 		};
 		847C33EA2E24017700B265E0 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 8A9BCD8F2EA81445004C413A /* Shared.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -402,6 +442,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = bridge/Info.plist;
 				INFOPLIST_KEY_LSUIElement = NO;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Это приложение использует Bluetooth для обмена данными";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -432,6 +473,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = bridge/Info.plist;
 				INFOPLIST_KEY_LSUIElement = NO;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Это приложение использует Bluetooth для обмена данными";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -451,9 +493,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 84X4N5C2K8;
+				DEVELOPMENT_TEAM = 7MZ7Y7JHLP;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.6;
 				MARKETING_VERSION = 1.0;
@@ -469,9 +512,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 84X4N5C2K8;
+				DEVELOPMENT_TEAM = 7MZ7Y7JHLP;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.6;
 				MARKETING_VERSION = 1.0;
@@ -488,7 +532,7 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 84X4N5C2K8;
+				DEVELOPMENT_TEAM = 7MZ7Y7JHLP;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = bridge.bridgeUITests;
@@ -504,7 +548,7 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 84X4N5C2K8;
+				DEVELOPMENT_TEAM = 7MZ7Y7JHLP;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = bridge.bridgeUITests;
@@ -555,6 +599,44 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		8AA76B9C2E957E800013FCA6 /* XCLocalSwiftPackageReference "Packages/NotificationService" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/NotificationService;
+		};
+		8AA76B9F2E957E950013FCA6 /* XCLocalSwiftPackageReference "Packages/ClipboardService" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/ClipboardService;
+		};
+		8AA76BA22E957EA30013FCA6 /* XCLocalSwiftPackageReference "Packages/BluetoothService" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/BluetoothService;
+		};
+		8AA76BA52E957EB00013FCA6 /* XCLocalSwiftPackageReference "Packages/CoreModels" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/CoreModels;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		8AA76B9D2E957E800013FCA6 /* NotificationService */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = NotificationService;
+		};
+		8AA76BA02E957E950013FCA6 /* ClipboardService */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ClipboardService;
+		};
+		8AA76BA32E957EA30013FCA6 /* BluetoothService */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = BluetoothService;
+		};
+		8AA76BA62E957EB00013FCA6 /* CoreModels */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = CoreModels;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 847C33BE2E24017600B265E0 /* Project object */;
 }

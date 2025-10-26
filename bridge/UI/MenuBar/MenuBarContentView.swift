@@ -8,41 +8,40 @@
 import SwiftUI
 
 struct MenuBarContentView: View {
-    @ObservedObject var bleManager: BLEPeripheralManager
+    @EnvironmentObject var model: AppViewModel
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             
-            // Оборачиваем текст в кнопки с пустым действием (чтобы добиться правильныъ цветов для текста)
+            // Wrap text in buttons with an empty action to achieve the correct text colors
             Button(action: {}) {
                 Text("Bridger")
                     .font(.headline)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
                         
-            Button(action: {}) {
-                (Text("Status: ") + Text(bleManager.powerState.rawValue).foregroundStyle(bleManager.powerState == .poweredOn ? .green : .red))
+            Button(role: nil, action: {}) {
+                (Text("Status: ") + Text(model.bluetoothPowerState.rawValue).foregroundStyle(model.bluetoothPowerState == .poweredOn ? .green : .red))
             }
             .font(.caption)
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            
-            
+
+
             Button(action: {}) {
-                Text("Connection: \(bleManager.connectionState.rawValue)")
+                Text("Connection: \(model.connectionState.rawValue)")
                     .font(.caption)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            if !bleManager.connectedDevices.isEmpty {
+            if !model.connectedDevices.isEmpty {
                 Divider()
                 Button(action: {}) {
                     Text("Connected Devices:")
                         .font(.caption)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                ForEach(bleManager.connectedDevices) { device in
-                    // Используем @ObservedObject для каждого элемента, чтобы реагировать на изменения name
+                ForEach(model.connectedDevices) { device in
                     ConnectedDeviceRow(device: device)
                 }
             }
