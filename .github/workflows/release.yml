@@ -24,10 +24,12 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Import Code-Signing Certificates
+        id: import-certs
         uses: apple-actions/import-codesign-certs@v2
         with:
           p12-file-base64: ${{ secrets.MACOS_CERTIFICATE_P12 }}
           p12-password: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          keychain-password: "temp-password-for-testing"
 
       - name: Create xcconfig file
         run: echo "${{ secrets.SHARED_BLE_CONFIG }}" > Shared.xcconfig
@@ -36,6 +38,10 @@ jobs:
         env:
           APPLE_DEVELOPMENT_TEAM_ID: ${{ secrets.APPLE_DEVELOPMENT_TEAM_ID }}
         run: |
+          # Manually unlock the keychain and add it to the search list
+          security unlock-keychain -p "temp-password-for-testing" ${{ steps.import-certs.outputs.keychain-path }}
+          security list-keychains -d user -s ${{ steps.import-certs.outputs.keychain-path }} login.keychain-db
+
           # Archive the application
           xcodebuild archive \
             -project bridge.xcodeproj \
