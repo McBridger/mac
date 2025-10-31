@@ -1,6 +1,8 @@
 name: Build and Release macOS App
 
 on:
+  push:
+    branches: ['**']
   workflow_dispatch:
     inputs:
       version:
@@ -10,8 +12,14 @@ on:
 
 jobs:
   build-and-release:
-    runs-on: macos-latest # We need macOS to build a macOS app
+    runs-on: macos-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+    timeout-minutes: 15
     steps:
+      - name: Wait for 5 seconds for cancellation
+        run: sleep 5
       - name: Checkout code
         uses: actions/checkout@v3
 
@@ -19,16 +27,14 @@ jobs:
         run: echo "${{ secrets.SHARED_BLE_CONFIG }}" > Shared.xcconfig
 
       - name: Build and Archive
+        env:
+          APPLE_DEVELOPMENT_TEAM_ID: ${{ secrets.APPLE_DEVELOPMENT_TEAM_ID }}
         run: |
           xcodebuild archive \
             -project bridge.xcodeproj \
             -scheme bridge \
             -archivePath ./build/bridge.xcarchive \
-            DEVELOPMENT_TEAM="" \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_ENTITLEMENTS=""
-      
+            DEVELOPMENT_TEAM="${{ secrets.APPLE_DEVELOPMENT_TEAM_ID }}"
       - name: Export the App
         run: |
           xcodebuild -exportArchive \
