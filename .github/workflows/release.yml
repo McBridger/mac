@@ -38,12 +38,9 @@ jobs:
         env:
           APPLE_DEVELOPMENT_TEAM_ID: ${{ secrets.APPLE_DEVELOPMENT_TEAM_ID }}
         run: |
-          # Manually unlock the keychain
+          # Manually unlock the keychain and set it as default
           security unlock-keychain -p "temp-password-for-testing" ${{ steps.import-certs.outputs.keychain-path }}
-          
-          # Add the temporary keychain to the user's search list, preserving existing ones
-          current_keychains=$(security list-keychains -d user | tr -d '"')
-          security list-keychains -d user -s ${{ steps.import-certs.outputs.keychain-path }} $current_keychains
+          security default-keychain -s ${{ steps.import-certs.outputs.keychain-path }}
 
           # Archive the application
           xcodebuild archive \
