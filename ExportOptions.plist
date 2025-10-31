@@ -8,5 +8,7 @@
     <string>manual</string>
     <key>teamID</key>
     <string>$(APPLE_DEVELOPMENT_TEAM_ID)</string>
+    <!-- <key>signingCertificate</key>
+    <string>Developer ID Application</string> -->
 </dict>
 </plist>
