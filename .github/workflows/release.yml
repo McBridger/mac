@@ -42,7 +42,6 @@ jobs:
             -archivePath ./build/bridge.xcarchive \
             DEVELOPMENT_TEAM="${{ secrets.APPLE_DEVELOPMENT_TEAM_ID }}" \
             CODE_SIGN_IDENTITY="Developer ID Application"
-
       - name: Export the App
         env:
           APPLE_DEVELOPMENT_TEAM_ID: ${{ secrets.APPLE_DEVELOPMENT_TEAM_ID }}
@@ -50,8 +49,7 @@ jobs:
           xcodebuild -exportArchive \
             -archivePath ./build/bridge.xcarchive \
             -exportPath ./build \
-            -exportOptionsPlist ./ExportOptions.plist \
-            CODE_SIGN_IDENTITY="Developer ID Application"
+            -exportOptionsPlist ./ExportOptions.plist
 
       - name: Create DMG
         run: |
