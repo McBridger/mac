@@ -23,6 +23,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Import Code-Signing Certificates
+        uses: apple-actions/import-codesign-certs@v2
+        with:
+          p12-file-base64: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+          p12-password: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+
       - name: Create xcconfig file
         run: echo "${{ secrets.SHARED_BLE_CONFIG }}" > Shared.xcconfig
 
