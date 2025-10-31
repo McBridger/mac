@@ -40,7 +40,8 @@ jobs:
             -project bridge.xcodeproj \
             -scheme bridge \
             -archivePath ./build/bridge.xcarchive \
-            DEVELOPMENT_TEAM="${{ secrets.APPLE_DEVELOPMENT_TEAM_ID }}"
+            DEVELOPMENT_TEAM="${{ secrets.APPLE_DEVELOPMENT_TEAM_ID }}" \
+            CODE_SIGN_IDENTITY="Developer ID Application"
       - name: Export the App
         run: |
           xcodebuild -exportArchive \
