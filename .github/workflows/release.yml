@@ -30,6 +30,21 @@ jobs:
           p12-file-base64: ${{ secrets.MACOS_CERTIFICATE_P12 }}
           p12-password: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
 
+      - name: 🔍 === START DIAGNOSTICS ===
+        run: echo "Starting diagnostics..."
+
+      - name: 1. List available keychains
+        run: security list-keychains
+
+      - name: 2. Show available code signing identities
+        run: security find-identity -v -p codesigning
+
+      - name: 3. Show content of ExportOptions.plist
+        run: cat ExportOptions.plist
+
+      - name: 🔍 === END DIAGNOSTICS ===
+        run: echo "Diagnostics finished."
+
       - name: Create xcconfig file
         run: echo "${{ secrets.SHARED_BLE_CONFIG }}" > Shared.xcconfig
 

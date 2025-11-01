@@ -4,12 +4,12 @@
 <dict>
     <key>method</key>
     <string>developer-id</string>
-    
+
     <key>signingStyle</key>
     <string>manual</string>
 
     <key>teamID</key>
-    <string>$(APPLE_DEVELOPMENT_TEAM_ID)</string>
+    <string>7MZ7Y7JHLP</string>
 
     <key>signingCertificate</key>
     <string>Developer ID Application</string>
