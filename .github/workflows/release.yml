@@ -34,27 +34,27 @@ jobs:
       - name: Create xcconfig file
         run: echo "${{ secrets.SHARED_BLE_CONFIG }}" > Shared.xcconfig
 
-      - name: Build, Archive, and Export
-        env:
-          APPLE_DEVELOPMENT_TEAM_ID: ${{ secrets.APPLE_DEVELOPMENT_TEAM_ID }}
+      - name: Build and Archive
         run: |
-          # Manually unlock the keychain and set it as default
-          security unlock-keychain -p "temp-password-for-testing" ${{ steps.import-certs.outputs.keychain-path }}
-          security default-keychain -s ${{ steps.import-certs.outputs.keychain-path }}
-
-          # Archive the application
           xcodebuild archive \
             -project bridge.xcodeproj \
             -scheme bridge \
             -archivePath ./build/bridge.xcarchive \
             DEVELOPMENT_TEAM="${{ secrets.APPLE_DEVELOPMENT_TEAM_ID }}" \
-            CODE_SIGN_IDENTITY="Developer ID Application"
+            CODE_SIGN_IDENTITY="Developer ID Application" \
+            OTHER_CODE_SIGN_FLAGS="--keychain ${{ steps.import_certs.outputs.keychain-path }}"
+      
+      - name: Unlock Keychain
+        run: security unlock-keychain -p "${{ secrets.MACOS_CERTIFICATE_PASSWORD }}" "${{ steps.import_certs.outputs.keychain-path }}"
 
-          # Export the application
+      - name: Export the App
+        run: |
           xcodebuild -exportArchive \
             -archivePath ./build/bridge.xcarchive \
             -exportPath ./build \
-            -exportOptionsPlist ./ExportOptions.plist
+            -exportOptionsPlist ./ExportOptions.plist \
+            -allowProvisioningUpdates \
+            OTHER_CODE_SIGN_FLAGS="--keychain ${{ steps.import_certs.outputs.keychain-path }}"
 
       - name: Create DMG
         run: |
