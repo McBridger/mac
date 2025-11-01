@@ -9,7 +9,7 @@
     <string>manual</string>
 
     <key>teamID</key>
-    <string>7MZ7Y7JHLP</string>
+    <string>${APPLE_DEVELOPMENT_TEAM_ID}</string>
 
     <key>signingCertificate</key>
     <string>Developer ID Application</string>

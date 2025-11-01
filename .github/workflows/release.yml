@@ -59,6 +59,37 @@ jobs:
             DEVELOPMENT_TEAM="${{ secrets.APPLE_DEVELOPMENT_TEAM_ID }}" \
             CODE_SIGN_IDENTITY="Developer ID Application"
 
+      - name: Prepare ExportOptions.plist
+        run: |
+
+          VARS=$(grep -oE '\$\{([A-Za-z0-9_]+)\}' ExportOptions.plist | sort -u)
+
+          if [ -z "$VARS" ]; then
+            echo "No variables to substitute. Moving on."
+            exit 0
+          fi
+          
+          echo "Found variables to substitute: $VARS"
+
+          for VAR_PLACEHOLDER in $VARS; do
+            VAR_NAME=$(echo "$VAR_PLACEHOLDER" | sed -e 's/$//' -e 's/^{//' -e 's/}$//')
+
+            if ! printenv "$VAR_NAME" > /dev/null; then
+              echo "::error::Required secret '$VAR_NAME' is not defined in the 'env' context for this step!"
+              exit 1
+            fi
+
+            echo "Substituting '$VAR_NAME'..."
+            
+            VAR_VALUE=$(printenv "$VAR_NAME")
+            sed -i '' "s|$VAR_PLACEHOLDER|$VAR_VALUE|g" ExportOptions.plist
+          done
+
+          echo "Substitution complete. Final file content:"
+        env:
+          APPLE_DEVELOPMENT_TEAM_ID: ${{ secrets.APPLE_DEVELOPMENT_TEAM_ID }}
+          # ANOTHER_SECRET_VAR: ${{ secrets.ANOTHER_SECRET_VAR }}
+
       - name: Export the App
         env:
           APPLE_DEVELOPMENT_TEAM_ID: ${{ secrets.APPLE_DEVELOPMENT_TEAM_ID }}
