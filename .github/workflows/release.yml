@@ -62,27 +62,26 @@ jobs:
       - name: Prepare ExportOptions.plist
         run: |
 
-          VARS=$(grep -oE '\$\{([A-Za-z0-9_]+)\}' ExportOptions.plist | sort -u)
+          CLEAN_VARS=$(grep -oE '\$\{([A-Za-z0-9_]+)\}' ExportOptions.plist | sed -E 's/^\$\{(.*)\}$/\1/' | sort -u)
 
-          if [ -z "$VARS" ]; then
+          if [ -z "$CLEAN_VARS" ]; then
             echo "No variables to substitute. Moving on."
             exit 0
           fi
           
-          echo "Found variables to substitute: $VARS"
+          echo "Found variables to substitute: $CLEAN_VARS"
 
-          for VAR_PLACEHOLDER in $VARS; do
-            VAR_NAME=$(echo "$VAR_PLACEHOLDER" | sed -e 's/$//' -e 's/^{//' -e 's/}$//')
-
+          for VAR_NAME in $CLEAN_VARS; do
             if ! printenv "$VAR_NAME" > /dev/null; then
               echo "::error::Required secret '$VAR_NAME' is not defined in the 'env' context for this step!"
               exit 1
             fi
 
             echo "Substituting '$VAR_NAME'..."
-            
             VAR_VALUE=$(printenv "$VAR_NAME")
-            sed -i '' "s|$VAR_PLACEHOLDER|$VAR_VALUE|g" ExportOptions.plist
+            PLACEHOLDER_TO_REPLACE="\${${VAR_NAME}}"
+
+            sed -i '' "s|$PLACEHOLDER_TO_REPLACE|$VAR_VALUE|g" ExportOptions.plist
           done
 
           echo "Substitution complete. Final file content:"
