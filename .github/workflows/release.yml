@@ -45,7 +45,7 @@ jobs:
             CODE_SIGN_IDENTITY="Developer ID Application"
       
       - name: Unlock Keychain
-        run: security unlock-keychain -p "${{ secrets.MACOS_CERTIFICATE_PASSWORD }}" "${{ steps.import_certs.outputs.keychain-path }}"
+        run: security unlock-keychain -p "${{ steps.import_certs.outputs.keychain-password }}" "signing_temp"
 
       - name: Export the App
         env:
