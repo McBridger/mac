@@ -25,7 +25,7 @@ jobs:
 
       - name: Import Code-Signing Certificates
         id: import_certs
-        uses: apple-actions/import-codesign-certs@v2
+        uses: apple-actions/import-codesign-certs@v3
         with:
           p12-file-base64: ${{ secrets.MACOS_CERTIFICATE_P12 }}
           p12-password: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
@@ -43,9 +43,6 @@ jobs:
             -archivePath ./build/bridge.xcarchive \
             DEVELOPMENT_TEAM="${{ secrets.APPLE_DEVELOPMENT_TEAM_ID }}" \
             CODE_SIGN_IDENTITY="Developer ID Application"
-      
-      - name: Unlock Keychain
-        run: security unlock-keychain -p "${{ steps.import_certs.outputs.keychain-password }}" "signing_temp"
 
       - name: Export the App
         env:
