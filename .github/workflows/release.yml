@@ -34,6 +34,8 @@ jobs:
         run: echo "${{ secrets.SHARED_BLE_CONFIG }}" > Shared.xcconfig
 
       - name: Build and Archive
+        env:
+          APPLE_DEVELOPMENT_TEAM_ID: ${{ secrets.APPLE_DEVELOPMENT_TEAM_ID }}
         run: |
           xcodebuild archive \
             -project bridge.xcodeproj \
@@ -47,6 +49,8 @@ jobs:
         run: security unlock-keychain -p "${{ secrets.MACOS_CERTIFICATE_PASSWORD }}" "${{ steps.import_certs.outputs.keychain-path }}"
 
       - name: Export the App
+        env:
+          APPLE_DEVELOPMENT_TEAM_ID: ${{ secrets.APPLE_DEVELOPMENT_TEAM_ID }}
         run: |
           xcodebuild -exportArchive \
             -archivePath ./build/bridge.xcarchive \
