@@ -50,7 +50,15 @@ jobs:
       - name: Create xcconfig file
         run: echo "${{ secrets.SHARED_BLE_CONFIG }}" > Shared.xcconfig
 
+      - name: Cache Xcode build
+        id: cache-xcode-archive
+        uses: actions/cache@v3
+        with:
+          path: ./build
+          key: v1-${{ runner.os }}-xcode-archive-${{ hashFiles('**/project.pbxproj', '**/Package.resolved', '**/*.swift', 'Shared.xcconfig') }}
+
       - name: Build and Archive
+        if: steps.cache-xcode-archive.outputs.cache-hit != 'true'
         env:
           APPLE_DEVELOPMENT_TEAM_ID: ${{ secrets.APPLE_DEVELOPMENT_TEAM_ID }}
         run: |
