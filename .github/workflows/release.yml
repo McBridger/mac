@@ -137,6 +137,6 @@ jobs:
           tag_name: v${{ github.event.inputs.version }}-mac
           name: Release v${{ github.event.inputs.version }}-mac
           body: |
-            Manual release for version ${{ github.event.inputs.version }}.
+            Release for version ${{ github.event.inputs.version }}.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
