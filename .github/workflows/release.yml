@@ -118,7 +118,7 @@ jobs:
           xcrun notarytool submit "build/bridge.zip" \
             --apple-id "${{ secrets.APPLE_ID }}" \
             --password "${{ secrets.APPLE_ID_PASSWORD }}" \
-            --team-id "${{ secrets.APPLE_TEAM_ID }}" \
+            --team-id "${{ secrets.APPLE_DEVELOPMENT_TEAM_ID }}" \
             --wait
           
           # Staple the notarization ticket to the app
