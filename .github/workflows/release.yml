@@ -48,7 +48,9 @@ jobs:
         run: echo "Diagnostics finished."
 
       - name: Create xcconfig file
-        run: echo "${{ secrets.SHARED_BLE_CONFIG }}" > Shared.xcconfig
+        run: |
+          echo "${{ secrets.SHARED_BLE_CONFIG }}" > Shared.xcconfig
+          echo "PRODUCT_NAME = ${{ vars.PRODUCT_NAME }}" >> Shared.xcconfig
 
       - name: Cache Xcode build
         id: cache-xcode-archive
