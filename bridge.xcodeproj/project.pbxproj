@@ -32,7 +32,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		847C33C62E24017600B265E0 /* bridge.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = bridge.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		847C33C62E24017600B265E0 /* McBridger.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = McBridger.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		847C33D72E24017700B265E0 /* bridgeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = bridgeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		847C33E12E24017700B265E0 /* bridgeUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = bridgeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8A9BCD8F2EA81445004C413A /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Shared.xcconfig; sourceTree = "<group>"; };
@@ -112,7 +112,7 @@
 		847C33C72E24017600B265E0 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				847C33C62E24017600B265E0 /* bridge.app */,
+				847C33C62E24017600B265E0 /* McBridger.app */,
 				847C33D72E24017700B265E0 /* bridgeTests.xctest */,
 				847C33E12E24017700B265E0 /* bridgeUITests.xctest */,
 			);
@@ -145,7 +145,7 @@
 				8AA76BA62E957EB00013FCA6 /* CoreModels */,
 			);
 			productName = bridge;
-			productReference = 847C33C62E24017600B265E0 /* bridge.app */;
+			productReference = 847C33C62E24017600B265E0 /* McBridger.app */;
 			productType = "com.apple.product-type.application";
 		};
 		847C33D62E24017700B265E0 /* bridgeTests */ = {
@@ -434,17 +434,18 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = bridge/bridge.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"bridge/Preview Content\"";
-				DEVELOPMENT_TEAM = 7MZ7Y7JHLP;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = 7MZ7Y7JHLP;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = bridge/Info.plist;
 				INFOPLIST_KEY_LSUIElement = NO;
-				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Это приложение использует Bluetooth для обмена данными";
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "This app needs to fondle the airwaves with its Bluetooth tentacles to find your gadgets.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -452,7 +453,9 @@
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = mc.bridger;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_MODULE_NAME = "$(inherited)";
+				PRODUCT_NAME = "$(inherited)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 			};
@@ -464,18 +467,19 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = bridge/bridge.entitlements;
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Developer ID Application";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"bridge/Preview Content\"";
-				DEVELOPMENT_TEAM = 7MZ7Y7JHLP;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = 7MZ7Y7JHLP;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = bridge/Info.plist;
 				INFOPLIST_KEY_LSUIElement = NO;
-				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Это приложение использует Bluetooth для обмена данными";
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "This app needs to fondle the airwaves with its Bluetooth tentacles to find your gadgets.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -483,7 +487,9 @@
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = mc.bridger;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_MODULE_NAME = "$(inherited)";
+				PRODUCT_NAME = "$(inherited)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 			};

@@ -1,6 +1,8 @@
 name: Build and Release macOS App
 
 on:
+  push:
+    branches: ['main']
   workflow_dispatch:
     inputs:
       version:
@@ -10,42 +12,119 @@ on:
 
 jobs:
   build-and-release:
-    runs-on: macos-latest # We need macOS to build a macOS app
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+    timeout-minutes: 15
     steps:
+      - name: Wait for 5 seconds for cancellation
+        run: sleep 5
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Select Xcode version
-        run: sudo xcode-select -s /Applications/Xcode_15.0.app/Contents/Developer
+      - name: Import Code-Signing Certificates
+        id: import_certs
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+          p12-password: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+
+      - name: Create xcconfig file
+        run: |
+          echo "${{ secrets.SHARED_BLE_CONFIG }}" > Shared.xcconfig
+          echo "PRODUCT_NAME = ${{ vars.PRODUCT_NAME }}" >> Shared.xcconfig
+
+      - name: Cache Notarized App
+        id: cache-notarized-app
+        uses: actions/cache@v3
+        with:
+          path: build/${{ vars.PRODUCT_NAME }}.app
+          key: v1-${{ runner.os }}-notarized-app-${{ hashFiles('**/project.pbxproj', '**/Package.resolved', '**/*.swift', 'Shared.xcconfig', 'ExportOptions.plist') }}
 
       - name: Build and Archive
+        if: steps.cache-notarized-app.outputs.cache-hit != 'true'
+        env:
+          APPLE_DEVELOPMENT_TEAM_ID: ${{ secrets.APPLE_DEVELOPMENT_TEAM_ID }}
         run: |
           xcodebuild archive \
             -project bridge.xcodeproj \
             -scheme bridge \
             -archivePath ./build/bridge.xcarchive \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO
-      
+            DEVELOPMENT_TEAM="${{ secrets.APPLE_DEVELOPMENT_TEAM_ID }}" \
+            CODE_SIGN_IDENTITY="Developer ID Application"
+
+      - name: Prepare ExportOptions.plist
+        if: steps.cache-notarized-app.outputs.cache-hit != 'true'
+        run: |
+
+          CLEAN_VARS=$(grep -oE '\$\{([A-Za-z0-9_]+)\}' ExportOptions.plist | sed -E 's/^\$\{(.*)\}$/\1/' | sort -u)
+
+          if [ -z "$CLEAN_VARS" ]; then
+            echo "No variables to substitute. Moving on."
+            exit 0
+          fi
+          
+          echo "Found variables to substitute: $CLEAN_VARS"
+
+          for VAR_NAME in $CLEAN_VARS; do
+            if ! printenv "$VAR_NAME" > /dev/null; then
+              echo "::error::Required secret '$VAR_NAME' is not defined in the 'env' context for this step!"
+              exit 1
+            fi
+
+            echo "Substituting '$VAR_NAME'..."
+            VAR_VALUE=$(printenv "$VAR_NAME")
+            PLACEHOLDER_TO_REPLACE="\${${VAR_NAME}}"
+
+            sed -i '' "s|$PLACEHOLDER_TO_REPLACE|$VAR_VALUE|g" ExportOptions.plist
+          done
+
+          echo "Substitution complete. Final file content:"
+        env:
+          APPLE_DEVELOPMENT_TEAM_ID: ${{ secrets.APPLE_DEVELOPMENT_TEAM_ID }}
+          # ANOTHER_SECRET_VAR: ${{ secrets.ANOTHER_SECRET_VAR }}
+
       - name: Export the App
+        if: steps.cache-notarized-app.outputs.cache-hit != 'true'
+        env:
+          APPLE_DEVELOPMENT_TEAM_ID: ${{ secrets.APPLE_DEVELOPMENT_TEAM_ID }}
         run: |
           xcodebuild -exportArchive \
             -archivePath ./build/bridge.xcarchive \
             -exportPath ./build \
-            -exportOptionsPlist ./bridge/Info.plist \
-            "CODE_SIGNING_ALLOWED=NO"
+            -exportOptionsPlist ./ExportOptions.plist \
+            -allowProvisioningUpdates
+
+      - name: Notarize App
+        if: steps.cache-notarized-app.outputs.cache-hit != 'true'
+        run: |
+          # Zip the app for notarization
+          ditto -c -k --sequesterRsrc --keepParent "build/${{ vars.PRODUCT_NAME }}.app" "build/bridge.zip"
+
+          # Notarize the app
+          xcrun notarytool submit "build/bridge.zip" \
+            --apple-id "${{ secrets.APPLE_ID }}" \
+            --password "${{ secrets.APPLE_ID_PASSWORD }}" \
+            --team-id "${{ secrets.APPLE_DEVELOPMENT_TEAM_ID }}" \
+            --wait
+          
+          # Staple the notarization ticket to the app
+          xcrun stapler staple "build/${{ vars.PRODUCT_NAME }}.app"
 
       - name: Create DMG
         run: |
-          hdiutil create -volname "McBridger" -srcfolder "./build/bridge.app" -ov -format UDZO "McBridger-${{ github.event.inputs.version }}.dmg"
+          hdiutil create -volname "${{ vars.PRODUCT_NAME }}" -srcfolder "./build/${{ vars.PRODUCT_NAME }}.app" -ov -format UDZO "${{ vars.PRODUCT_NAME }}-${{ github.event.inputs.version }}.dmg"
 
       - name: Create Release and Upload DMG
         uses: softprops/action-gh-release@v1
         with:
-          files: "McBridger-${{ github.event.inputs.version }}.dmg"
+          files: "${{ vars.PRODUCT_NAME }}-${{ github.event.inputs.version }}.dmg"
           tag_name: v${{ github.event.inputs.version }}-mac
-          release_name: Release v${{ github.event.inputs.version }}-mac
+          name: Release v${{ github.event.inputs.version }}-mac
           body: |
-            Manual release for version ${{ github.event.inputs.version }}.
+            Release for version ${{ github.event.inputs.version }}.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
