@@ -109,6 +109,49 @@ jobs:
             -exportOptionsPlist ./ExportOptions.plist \
             -allowProvisioningUpdates
 
+      - name: Notarize App
+        run: |
+          # Zip the app for notarization
+          ditto -c -k --sequesterRsrc --keepParent "build/bridge.app" "build/bridge.zip"
+
+          # Upload the app for notarization
+          output=$(xcrun altool --notarize-app \
+            --primary-bundle-id "mc.bridger" \
+            --username "${{ secrets.APPLE_ID }}" \
+            --password "${{ secrets.APPLE_ID_PASSWORD }}" \
+            --team-id "${{ secrets.APPLE_DEVELOPMENT_TEAM_ID }}" \
+            --file "build/bridge.zip")
+          
+          echo "$output"
+          request_uuid=$(echo "$output" | awk '/RequestUUID/ { print $3 }')
+
+          # Wait for notarization to complete
+          while true; do
+            echo "Checking notarization status..."
+            status_output=$(xcrun altool --notarization-info "$request_uuid" \
+              --username "${{ secrets.APPLE_ID }}" \
+              --password "${{ secrets.APPLE_ID_PASSWORD }}")
+            echo "$status_output"
+            status=$(echo "$status_output" | awk -F ': ' '/Status:/ { print $2 }')
+            if [ "$status" == "success" ]; then
+              echo "Notarization successful."
+              break
+            elif [ "$status" == "in progress" ]; then
+              echo "Notarization in progress, waiting 60 seconds..."
+              sleep 60
+            else
+              echo "Notarization failed: $status"
+              # Print the log file URL for debugging
+              log_url=$(echo "$status_output" | awk -F ': ' '/LogFileURL:/ { print $2 }')
+              echo "Log file URL: $log_url"
+              curl -L "$log_url"
+              exit 1
+            fi
+          done
+
+          # Staple the notarization ticket to the app
+          xcrun stapler staple "build/bridge.app"
+
       - name: Create DMG
         run: |
           hdiutil create -volname "McBridger" -srcfolder "./build/bridge.app" -ov -format UDZO "McBridger-${{ github.event.inputs.version }}.dmg"
