@@ -114,7 +114,7 @@ jobs:
       - name: Notarize App
         run: |
           # Zip the app for notarization
-          ditto -c -k --sequesterRsrc --keepParent "build/bridge.app" "build/bridge.zip"
+          ditto -c -k --sequesterRsrc --keepParent "build/${{ vars.PRODUCT_NAME }}.app" "build/bridge.zip"
 
           # Notarize the app
           xcrun notarytool submit "build/bridge.zip" \
@@ -124,16 +124,16 @@ jobs:
             --wait
           
           # Staple the notarization ticket to the app
-          xcrun stapler staple "build/bridge.app"
+          xcrun stapler staple "build/${{ vars.PRODUCT_NAME }}.app"
 
       - name: Create DMG
         run: |
-          hdiutil create -volname "McBridger" -srcfolder "./build/bridge.app" -ov -format UDZO "McBridger-${{ github.event.inputs.version }}.dmg"
+          hdiutil create -volname "${{ vars.PRODUCT_NAME }}" -srcfolder "./build/${{ vars.PRODUCT_NAME }}.app" -ov -format UDZO "${{ vars.PRODUCT_NAME }}-${{ github.event.inputs.version }}.dmg"
 
       - name: Create Release and Upload DMG
         uses: softprops/action-gh-release@v1
         with:
-          files: "McBridger-${{ github.event.inputs.version }}.dmg"
+          files: "${{ vars.PRODUCT_NAME }}-${{ github.event.inputs.version }}.dmg"
           tag_name: v${{ github.event.inputs.version }}-mac
           name: Release v${{ github.event.inputs.version }}-mac
           body: |
