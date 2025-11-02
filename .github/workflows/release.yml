@@ -32,35 +32,20 @@ jobs:
           p12-file-base64: ${{ secrets.MACOS_CERTIFICATE_P12 }}
           p12-password: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
 
-      - name: 🔍 === START DIAGNOSTICS ===
-        run: echo "Starting diagnostics..."
-
-      - name: 1. List available keychains
-        run: security list-keychains
-
-      - name: 2. Show available code signing identities
-        run: security find-identity -v -p codesigning
-
-      - name: 3. Show content of ExportOptions.plist
-        run: cat ExportOptions.plist
-
-      - name: 🔍 === END DIAGNOSTICS ===
-        run: echo "Diagnostics finished."
-
       - name: Create xcconfig file
         run: |
           echo "${{ secrets.SHARED_BLE_CONFIG }}" > Shared.xcconfig
           echo "PRODUCT_NAME = ${{ vars.PRODUCT_NAME }}" >> Shared.xcconfig
 
-      - name: Cache Xcode build
-        id: cache-xcode-archive
+      - name: Cache Notarized App
+        id: cache-notarized-app
         uses: actions/cache@v3
         with:
-          path: ./build
-          key: v1-${{ runner.os }}-xcode-archive-${{ hashFiles('**/project.pbxproj', '**/Package.resolved', '**/*.swift', 'Shared.xcconfig') }}
+          path: build/${{ vars.PRODUCT_NAME }}.app
+          key: v1-${{ runner.os }}-notarized-app-${{ hashFiles('**/project.pbxproj', '**/Package.resolved', '**/*.swift', 'Shared.xcconfig', 'ExportOptions.plist') }}
 
       - name: Build and Archive
-        if: steps.cache-xcode-archive.outputs.cache-hit != 'true'
+        if: steps.cache-notarized-app.outputs.cache-hit != 'true'
         env:
           APPLE_DEVELOPMENT_TEAM_ID: ${{ secrets.APPLE_DEVELOPMENT_TEAM_ID }}
         run: |
@@ -72,6 +57,7 @@ jobs:
             CODE_SIGN_IDENTITY="Developer ID Application"
 
       - name: Prepare ExportOptions.plist
+        if: steps.cache-notarized-app.outputs.cache-hit != 'true'
         run: |
 
           CLEAN_VARS=$(grep -oE '\$\{([A-Za-z0-9_]+)\}' ExportOptions.plist | sed -E 's/^\$\{(.*)\}$/\1/' | sort -u)
@@ -102,6 +88,7 @@ jobs:
           # ANOTHER_SECRET_VAR: ${{ secrets.ANOTHER_SECRET_VAR }}
 
       - name: Export the App
+        if: steps.cache-notarized-app.outputs.cache-hit != 'true'
         env:
           APPLE_DEVELOPMENT_TEAM_ID: ${{ secrets.APPLE_DEVELOPMENT_TEAM_ID }}
         run: |
@@ -112,6 +99,7 @@ jobs:
             -allowProvisioningUpdates
 
       - name: Notarize App
+        if: steps.cache-notarized-app.outputs.cache-hit != 'true'
         run: |
           # Zip the app for notarization
           ditto -c -k --sequesterRsrc --keepParent "build/${{ vars.PRODUCT_NAME }}.app" "build/bridge.zip"
