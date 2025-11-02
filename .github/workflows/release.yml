@@ -13,6 +13,8 @@ on:
 jobs:
   build-and-release:
     runs-on: macos-latest
+    permissions:
+      contents: write
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
@@ -108,7 +110,7 @@ jobs:
         with:
           files: "McBridger-${{ github.event.inputs.version }}.dmg"
           tag_name: v${{ github.event.inputs.version }}-mac
-          release_name: Release v${{ github.event.inputs.version }}-mac
+          name: Release v${{ github.event.inputs.version }}-mac
           body: |
             Manual release for version ${{ github.event.inputs.version }}.
         env:
