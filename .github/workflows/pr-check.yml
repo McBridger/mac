@@ -1,0 +1,35 @@
+name: PR Build & Test Check
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create xcconfig file
+        run: |
+          echo "${{ secrets.SHARED_BLE_CONFIG }}" > Shared.xcconfig
+          echo "PRODUCT_NAME = ${{ vars.PRODUCT_NAME }}" >> Shared.xcconfig
+
+      - name: Build Project
+        run: |
+          xcodebuild build \
+            -project bridge.xcodeproj \
+            -scheme bridge \
+            -destination 'platform=macOS' \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_ALLOWED=NO
+
+      # - for now tests are disabled
+      # - name: Run Tests
+      #   run: |
+      #     xcodebuild test \
+      #       -project bridge.xcodeproj \
+      #       -scheme bridgeTests \
+      #       -destination 'platform=macOS'
+
