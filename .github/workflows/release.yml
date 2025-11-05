@@ -32,9 +32,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          # Using GITHUB_TOKEN here because pushes made with it do not trigger new workflow runs,
-          # which is the desired behavior for version bump commits (combined with [skip ci]).
-          token: ${{ secrets.GITHUB_TOKEN }}
+          ssh-key: ${{ secrets.DEPLOY_KEY }}
 
       - name: Configure Git User
         run: |
@@ -51,8 +49,7 @@ jobs:
         # This action analyzes commits since the last tag and calculates the new version
         uses: paulhatch/semantic-version@v5.3.0
         with:
-          # Use GITHUB_TOKEN, as PAT is only needed for pushing changes
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          initial_version: "0.0.1"
           tag_prefix: "v"
           # Your tag prefix
           # Define keywords for major release bump
