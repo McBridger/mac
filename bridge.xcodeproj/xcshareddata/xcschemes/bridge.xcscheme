@@ -16,7 +16,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "847C33C52E24017600B265E0"
-               BuildableName = "bridge.app"
+               BuildableName = "McBridger.app"
                BlueprintName = "bridge"
                ReferencedContainer = "container:bridge.xcodeproj">
             </BuildableReference>
@@ -69,7 +69,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "847C33C52E24017600B265E0"
-            BuildableName = "bridge.app"
+            BuildableName = "McBridger.app"
             BlueprintName = "bridge"
             ReferencedContainer = "container:bridge.xcodeproj">
          </BuildableReference>
@@ -86,7 +86,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "847C33C52E24017600B265E0"
-            BuildableName = "bridge.app"
+            BuildableName = "McBridger.app"
             BlueprintName = "bridge"
             ReferencedContainer = "container:bridge.xcodeproj">
          </BuildableReference>

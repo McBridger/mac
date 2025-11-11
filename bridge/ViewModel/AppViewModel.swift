@@ -45,6 +45,7 @@ class AppViewModel: ObservableObject {
         
         // Flow 1: Local clipboard changes -> Send over Bluetooth
         clipboardService.$update
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] message in
                 self?.bluetoothService.send(message: message)
                 self?.clipboardHistory.append(message.value)

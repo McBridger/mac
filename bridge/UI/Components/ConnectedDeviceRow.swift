@@ -2,7 +2,7 @@ import SwiftUI
 import CoreModels
 
 struct ConnectedDeviceRow: View {
-    @ObservedObject var device: DeviceInfo
+    var device: DeviceInfo
 
     var body: some View {
         Button(action: {}) {

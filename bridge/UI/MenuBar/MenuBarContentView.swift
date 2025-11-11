@@ -26,21 +26,26 @@ struct MenuBarContentView: View {
             .font(.caption)
             .frame(maxWidth: .infinity, alignment: .leading)
 
-
-
             Button(action: {}) {
                 Text("Connection: \(model.connectionState.rawValue)")
                     .font(.caption)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            if !model.connectedDevices.isEmpty {
-                Divider()
-                Button(action: {}) {
-                    Text("Connected Devices:")
-                        .font(.caption)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
+            Divider()
+            
+            Button(action: {}) {
+                Text("Connected Devices:")
+                    .font(.caption)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            
+            if model.connectedDevices.isEmpty {
+                Text("No devices connected")
+                    .font(.caption2)
+                    .foregroundColor(.gray)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
                 ForEach(model.connectedDevices) { device in
                     ConnectedDeviceRow(device: device)
                 }
