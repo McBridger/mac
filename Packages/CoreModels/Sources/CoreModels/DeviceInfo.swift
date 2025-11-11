@@ -2,16 +2,14 @@ import Foundation
 
 // MARK: - Device Info Struct
 
-public class DeviceInfo: @unchecked Sendable, Identifiable, ObservableObject, Equatable {
+public struct DeviceInfo: Sendable, Identifiable {
     public let id: UUID
-    @Published public var name: String
+    public var name: String
+    public var isIntroduced: Bool
     
-    public init(id: UUID, name: String) {
+    public init(id: UUID, name: String, isIntroduced: Bool = false) {
         self.id = id
         self.name = name
-    }
-    
-    public static func == (lhs: DeviceInfo, rhs: DeviceInfo) -> Bool {
-        lhs.id == rhs.id
+        self.isIntroduced = isIntroduced
     }
 }
