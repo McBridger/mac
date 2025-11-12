@@ -69,7 +69,9 @@ jobs:
       - name: Create xcconfig file
         if: steps.versioning.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
         run: |
-          echo "${{ secrets.SHARED_BLE_CONFIG }}" > Shared.xcconfig
+          echo "SERVICE_UUID = ${{ secrets.BLE_SERVICE_UUID }}" > Shared.xcconfig
+          echo "CHARACTERISTIC_UUID = ${{ secrets.BLE_CHARACTERISTIC_UUID }}" >> Shared.xcconfig
+          echo "ADVERTISE_UUID = ${{ secrets.MAC_BLE_ADVERTISE_UUID }}" >> Shared.xcconfig
 
       - name: Cache Notarized App
         if: steps.versioning.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
