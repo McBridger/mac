@@ -25,7 +25,7 @@ struct bridgeApp: App {
                 }
             }
         } label: {
-            Image(systemName: "arrow.left.arrow.right.circle")
+            Image("MenuBarIcon")
         }
     }
 }
