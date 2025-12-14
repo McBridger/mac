@@ -150,10 +150,26 @@ jobs:
           # Staple the notarization ticket to the app
           xcrun stapler staple "build/${{ vars.PRODUCT_NAME }}.app"
 
+      - name: Install create-dmg
+        if: steps.versioning.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
+        run: brew install create-dmg
+
       - name: Create DMG
         if: steps.versioning.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
         run: |
-          hdiutil create -volname "${{ vars.PRODUCT_NAME }}" -srcfolder "./build/${{ vars.PRODUCT_NAME }}.app" -ov -format UDZO "${{ vars.PRODUCT_NAME }}-${{ env.RELEASE_VERSION }}.dmg"
+          source ./dmg/config.sh
+          
+          create-dmg \
+            --volname "${{ vars.PRODUCT_NAME }}" \
+            --background "$DMG_BACKGROUND_IMG" \
+            --window-pos $DMG_WINDOW_POS \
+            --window-size $DMG_WINDOW_SIZE \
+            --icon-size $DMG_ICON_SIZE \
+            --icon "${{ vars.PRODUCT_NAME }}.app" $DMG_APP_ICON_POS \
+            --hide-extension "${{ vars.PRODUCT_NAME }}.app" \
+            --app-drop-link $DMG_APP_DROP_LINK_POS \
+            "${{ vars.PRODUCT_NAME }}-${{ env.RELEASE_VERSION }}.dmg" \
+            "./build/${{ vars.PRODUCT_NAME }}.app"
 
       - name: Upload DMG artifact
         if: steps.versioning.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
