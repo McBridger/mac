@@ -8,5 +8,7 @@
 	<string>${CHARACTERISTIC_UUID}</string>
 	<key>SERVICE_UUID</key>
 	<string>${SERVICE_UUID}</string>
+	<key>ENCRYPTION_SALT</key>
+	<string>${ENCRYPTION_SALT}</string>
 </dict>
 </plist>
