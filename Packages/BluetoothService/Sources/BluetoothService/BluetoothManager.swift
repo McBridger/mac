@@ -29,13 +29,24 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, Observable
         CBPeripheralManager(delegate: self, queue: self.queue)
     }()
 
-    private let advertiseUUID = CBUUID(string: AppConfig.advertiseID)
-    private let serviceUUID = CBUUID(string: AppConfig.serviceID)
-    private let characteristicUUID = CBUUID(string: AppConfig.characteristicID)
+    private var advertiseUUID: CBUUID { 
+        CBUUID(data: EncryptionService.shared.derive(info: "McBridge_Advertise_UUID", count: 16)!)
+    }
+    
+    private var serviceUUID: CBUUID { 
+        CBUUID(data: EncryptionService.shared.derive(info: "McBridge_Service_UUID", count: 16)!)
+    }
+
+    private var characteristicUUID: CBUUID { 
+        CBUUID(data: EncryptionService.shared.derive(info: "McBridge_Characteristic_UUID", count: 16)!)
+    }
 
     // MARK: - Lifecycle
     public override init() {
         super.init()
+        
+        // FIXME: Temporary hardcoded phrase for testing
+        EncryptionService.shared.setup(with: "Correct-Horse-Battery-Staple")
         
         queue.async { _ = self.peripheralManager }
 
@@ -46,7 +57,7 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, Observable
                 guard self.power == .poweredOn else { return }
                 guard !self.connections.isEmpty else { return }
                 guard let char = self.textCharacteristic else { return }
-                guard let data = message.toData() else { return }
+                guard let data = message.toEncryptedData() else { return }
 
                 let targetCentrals = self.connections.values
                     .filter { $0.device.isIntroduced }
@@ -58,7 +69,7 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, Observable
                 }
 
                 self.peripheralManager.updateValue(data, for: char, onSubscribedCentrals: targetCentrals)
-                Logger.bluetooth.info("Sent a message of type \(message.type.rawValue) to \(targetCentrals.count) device(s).")
+                Logger.bluetooth.info("Sent an encrypted message of type \(message.type.rawValue) to \(targetCentrals.count) device(s).")
             }
             .store(in: &cancellables)
     }
@@ -152,12 +163,17 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, Observable
     // MARK: - Private Logic
     
     private func setupService() {
+        guard EncryptionService.shared.isReady else {
+            Logger.bluetooth.warning("Cannot setup service: Encryption not set.")
+            return
+        }
+        
         let service = CBMutableService(type: serviceUUID, primary: true)
         self.textCharacteristic = CBMutableCharacteristic(
             type: characteristicUUID,
-            properties: [.read, .write, .notifyEncryptionRequired],
+            properties: [.read, .write, .notify],
             value: nil,
-            permissions: [.readEncryptionRequired, .writeEncryptionRequired]
+            permissions: [.readable, .writeable]
         )
         service.characteristics = [self.textCharacteristic!]
         peripheralManager.add(service)
@@ -165,22 +181,28 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, Observable
     
     private func startAdvertising() {
         guard self.connection != .advertising else { return }
+        guard EncryptionService.shared.isReady else {
+            Logger.bluetooth.warning("Cannot start advertising: Encryption not set.")
+            return
+        }
         
-        let deviceName = SCDynamicStoreCopyComputerName(nil, nil) as String? ?? "McBridge"
         let advertisementData: [String: Any] = [
-          CBAdvertisementDataServiceUUIDsKey: [advertiseUUID],
-          CBAdvertisementDataLocalNameKey: deviceName
+          CBAdvertisementDataServiceUUIDsKey: [advertiseUUID]
         ]
+        
+        Logger.bluetooth.info("Starting advertising...")
+        Logger.bluetooth.info("  - Advertise UUID (128-bit): \(self.advertiseUUID.uuidString)")
+        Logger.bluetooth.info("  - Service UUID (128-bit): \(self.serviceUUID.uuidString)")
+        Logger.bluetooth.info("  - Characteristic UUID: \(self.characteristicUUID.uuidString)")
         
         peripheralManager.startAdvertising(advertisementData)
         updateState(state: &self.connection, to: .advertising)
-        Logger.bluetooth.info("Started yelling on the air with the handle \(deviceName).")
     }
     
     private func handleWrite(value: Data, from centralID: UUID) {
         do {
-            let message = try BridgerMessage.fromData(value, address: centralID.uuidString)
-            Logger.bluetooth.info("Message decrypted: Type \(message.type.rawValue), value: '\(message.value)'")
+            let message = try BridgerMessage.fromEncryptedData(value, address: centralID.uuidString)
+            Logger.bluetooth.info("Message received & decrypted: Type \(message.type.rawValue)")
             
             switch message.type {
             case .DEVICE_NAME:
@@ -189,7 +211,7 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, Observable
                 self.message = message
             }
         } catch {
-            Logger.bluetooth.error("Error decoding data from \(centralID.uuidString): \(error.localizedDescription)")
+            Logger.bluetooth.error("Error processing data from \(centralID.uuidString): \(error.localizedDescription)")
         }
     }
     
