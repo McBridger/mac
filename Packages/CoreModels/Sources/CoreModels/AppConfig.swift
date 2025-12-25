@@ -6,6 +6,7 @@ public enum AppConfig {
     public static let serviceID: String = try! Config.value(for: "SERVICE_UUID")
     public static let characteristicID: String = try! Config.value(for: "CHARACTERISTIC_UUID")
     public static let encryptionSalt: String = try! Config.value(for: "ENCRYPTION_SALT")
+    public static let mnemonic: String? = try? Config.value(for: "MNEMONIC_LOCAL")
 }
 
 enum Config {
