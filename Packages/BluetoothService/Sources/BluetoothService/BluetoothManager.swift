@@ -45,9 +45,6 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, Observable
     public override init() {
         super.init()
         
-        // FIXME: Temporary hardcoded phrase for testing
-        EncryptionService.shared.setup(with: "Correct-Horse-Battery-Staple")
-        
         queue.async { _ = self.peripheralManager }
 
         sendSubject

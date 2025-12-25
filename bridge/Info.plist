@@ -10,5 +10,7 @@
 	<string>${SERVICE_UUID}</string>
 	<key>ENCRYPTION_SALT</key>
 	<string>${ENCRYPTION_SALT}</string>
+	<key>MNEMONIC_LOCAL</key>
+	<string>${MNEMONIC_LOCAL}</string>
 </dict>
 </plist>

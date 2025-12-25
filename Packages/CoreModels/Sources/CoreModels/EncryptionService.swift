@@ -11,6 +11,12 @@ public final class EncryptionService: @unchecked Sendable {
     
     private init() {
         self.salt = Data(hexString: AppConfig.encryptionSalt) ?? Data()
+        
+        // Auto-setup if mnemonic is provided in config (development mode)
+        if let testMnemonic = AppConfig.mnemonic {
+            Logger.encryption.info("Found test mnemonic in config, performing auto-setup.")
+            setup(with: testMnemonic)
+        }
     }
 
     public var isReady: Bool { masterKey != nil }
