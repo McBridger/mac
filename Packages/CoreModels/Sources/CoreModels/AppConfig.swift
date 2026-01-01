@@ -1,5 +1,5 @@
-import Foundation
 import CoreBluetooth
+import Foundation
 
 public enum AppConfig {
     public static let advertiseID: String = try! Config.value(for: "ADVERTISE_UUID")
@@ -7,6 +7,7 @@ public enum AppConfig {
     public static let characteristicID: String = try! Config.value(for: "CHARACTERISTIC_UUID")
     public static let encryptionSalt: String = try! Config.value(for: "ENCRYPTION_SALT")
     public static let mnemonic: String? = try? Config.value(for: "MNEMONIC_LOCAL")
+    public static let mnemonicLength: Int = (try? Config.value(for: "MNEMONIC_LENGTH")) ?? 6
 }
 
 enum Config {
@@ -20,13 +21,13 @@ enum Config {
         }
 
         switch object {
-            case let value as T:
-                return value
-            case let string as String:
-                guard let value = T(string) else { fallthrough }
-                return value
-            default:
-                throw Error.invalidValue
+        case let value as T:
+            return value
+        case let string as String:
+            guard let value = T(string) else { fallthrough }
+            return value
+        default:
+            throw Error.invalidValue
         }
     }
 }

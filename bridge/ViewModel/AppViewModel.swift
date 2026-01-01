@@ -1,8 +1,10 @@
 import Foundation
 import Combine
+import AppKit
 import CoreModels
 import BluetoothService
 import ClipboardService
+import EncryptionService
 
 @MainActor
 class AppViewModel: ObservableObject {
@@ -11,6 +13,10 @@ class AppViewModel: ObservableObject {
     @Published var connectionState: ConnectionState = .disconnected
     @Published var connectedDevices: [DeviceInfo] = []
     @Published var clipboardHistory: [String] = []
+    
+    var storedMnemonic: String? {
+        EncryptionService.shared.storedMnemonic
+    }
 
     // MARK: - Services
     private let bluetoothService: BluetoothManager
@@ -22,6 +28,11 @@ class AppViewModel: ObservableObject {
         self.bluetoothService = bluetoothService
         self.clipboardService = clipboardService
         setupBindings()
+    }
+    
+    func resetSecurity() {
+        EncryptionService.shared.reset()
+        NSApplication.shared.terminate(self) // Pass self as sender
     }
 
     private func setupBindings() {

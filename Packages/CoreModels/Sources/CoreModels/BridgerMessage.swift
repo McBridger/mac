@@ -1,6 +1,7 @@
 import Foundation
 import OSLog
 import CryptoKit
+import EncryptionService
 
 // MARK: - Message Protocol Structs
 
@@ -126,6 +127,6 @@ public enum BridgerMessageError: Error, LocalizedError {
 }
 
 extension Logger {
-    private static let subsystem = Bundle.main.bundleIdentifier!
+    private static let subsystem = "com.mcbridger.CoreModels"
     static let coreModels = Logger(subsystem: subsystem, category: "CoreModels")
 }

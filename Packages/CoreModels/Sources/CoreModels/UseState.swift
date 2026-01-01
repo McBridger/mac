@@ -1,7 +1,7 @@
 import Combine
 
 @propertyWrapper
-public struct State<Value> {
+public struct UseState<Value> {
     public let subject: CurrentValueSubject<Value, Never>
     
     // Direct access to the value (for reading and writing)

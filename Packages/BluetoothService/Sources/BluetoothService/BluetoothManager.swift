@@ -4,13 +4,14 @@ import SystemConfiguration
 import OSLog
 import Combine
 import CoreModels
+import EncryptionService
 
 public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, ObservableObject {
 
     // MARK: - Public Publishers
-    @State public private(set) var power: BluetoothPowerState = .poweredOff
-    @State public private(set) var connection: ConnectionState = .disconnected
-    @State public private(set) var devices: [DeviceInfo] = []
+    @UseState public private(set) var power: BluetoothPowerState = .poweredOff
+    @UseState public private(set) var connection: ConnectionState = .disconnected
+    @UseState public private(set) var devices: [DeviceInfo] = []
     @Event public private(set) var message: BridgerMessage?
 
     // MARK: - Private State

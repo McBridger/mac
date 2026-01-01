@@ -4,24 +4,38 @@ import CommonCrypto
 import OSLog
 
 public final class EncryptionService: @unchecked Sendable {
-    nonisolated(unsafe) public static let shared = EncryptionService()
+    public static let shared = EncryptionService()
     
-    private let salt: Data
+    private var salt: Data?
     private var masterKey: SymmetricKey?
     
+    private let logger = Logger(subsystem: "com.mcbridger.SecurityService", category: "Encryption")
+    
     private init() {
-        self.salt = Data(hexString: AppConfig.encryptionSalt) ?? Data()
-        
-        // Auto-setup if mnemonic is provided in config (development mode)
-        if let testMnemonic = AppConfig.mnemonic {
-            Logger.encryption.info("Found test mnemonic in config, performing auto-setup.")
-            setup(with: testMnemonic)
-        }
+        // We don't have the salt yet, it will be provided via setup or bootstrap
     }
 
     public var isReady: Bool { masterKey != nil }
     
+    /// Returns the stored mnemonic if it exists
+    public var storedMnemonic: String? {
+        KeychainHelper.load()
+    }
+
+    /// Initializes the service with a salt and attempts to load the mnemonic from Keychain
+    public func bootstrap(saltHex: String) {
+        self.salt = Data(hexString: saltHex)
+        if let mnemonic = KeychainHelper.load() {
+            logger.info("Mnemonic found in Keychain, auto-initializing.")
+            setup(with: mnemonic)
+        }
+    }
+    
     public func setup(with passphrase: String) {
+        guard let salt = self.salt else {
+            logger.error("Setup failed: Salt not provided. Call bootstrap() first.")
+            return
+        }
         guard let passwordData = passphrase.data(using: .utf8) else { return }
         
         var derivedBytes = [UInt8](repeating: 0, count: 32)
@@ -35,15 +49,23 @@ public final class EncryptionService: @unchecked Sendable {
         )
         
         guard result == kCCSuccess else {
-            Logger.encryption.error("PBKDF2 failed: \(result)")
+            logger.error("PBKDF2 failed: \(result)")
             return
         }
         
+        // Persist to Keychain
+        KeychainHelper.save(passphrase)
+        
         self.masterKey = SymmetricKey(data: derivedBytes)
-        Logger.encryption.info("Master Key derived and ready.")
+        logger.info("Master Key derived and persisted.")
     }
 
-    /// Derives stable pseudo-random data of specified length for a given context (domain separation)
+    public func reset() {
+        KeychainHelper.delete()
+        masterKey = nil
+        logger.info("Security state reset.")
+    }
+
     public func derive(info: String, count: Int) -> Data? {
         guard let master = masterKey else { return nil }
         let derivedKey = HKDF<SHA256>.deriveKey(
@@ -56,7 +78,6 @@ public final class EncryptionService: @unchecked Sendable {
 }
 
 // MARK: - Helpers
-
 extension Data {
     init?(hexString: String) {
         let len = hexString.count / 2
@@ -73,8 +94,4 @@ extension Data {
         }
         self = data
     }
-}
-
-extension Logger {
-    static let encryption = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "EncryptionService")
 }

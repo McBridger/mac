@@ -1,21 +1,15 @@
-//
-//  MenuBarContentView.swift
-//  bridge
-//
-//  Created by Olena Zosimova on 24.08.2025.
-//
-
 import SwiftUI
 
 struct MenuBarContentView: View {
     @EnvironmentObject var model: AppViewModel
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             
             // Wrap text in buttons with an empty action to achieve the correct text colors
             Button(action: {}) {
-                Text("Bridger")
+                Text("McBridger")
                     .font(.headline)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -52,6 +46,11 @@ struct MenuBarContentView: View {
             }
 
             Divider()
+
+            Button("Settings...") {
+                openWindow(id: "settings")
+                NSApp.activate(ignoringOtherApps: true)
+            }
 
             Button("Terminate") {
                 NSApplication.shared.terminate(nil)

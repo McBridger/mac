@@ -2,38 +2,59 @@ import SwiftUI
 import UserNotifications
 import BluetoothService
 import ClipboardService
+import EncryptionService
+import CoreModels
 
 @MainActor
 class AppLogic: ObservableObject {
+    enum AppStatus: Equatable {
+        case initial
+        case setupRequired
+        case ready
+    }
+
     @Published var model: AppViewModel?
+    @Published var status: AppStatus = .initial
 
     func setup() async {
-        guard model == nil else { return }
+        print("--- App Logic: Starting setup ---")
         
-        print("Starting app setup...")
+        // Bootstrap Security
+        EncryptionService.shared.bootstrap(saltHex: AppConfig.encryptionSalt)
         
-        // 1. Create dependencies
-        let bluetoothService = BluetoothManager()
-        let clipboardService = ClipboardManager()
-
-        // 2. Create the ViewModel and bind everything together
-        self.model = AppViewModel(bluetoothService: bluetoothService, clipboardService: clipboardService)
-        print("ViewModel created. Services are bound.")
-
-        // 3. Request permissions
-        do {
-            let granted = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
-            if granted {
-                print("Notification permissions granted.")
-            } else {
-                print("Notification permissions denied.")
-            }
-        } catch {
-            print("Notification permissions request failed: \(error.localizedDescription)")
+        if EncryptionService.shared.isReady {
+            print("--- App Logic: Security is ready ---")
+            self.status = .ready
+        } else {
+            print("--- App Logic: Security setup required. Mnemonic missing. ---")
+            self.status = .setupRequired
+            return 
         }
+        
+        if model == nil {
+            // 1. Create dependencies
+            let bluetoothService = BluetoothManager()
+            let clipboardService = ClipboardManager()
 
-        // 4. Start the Clipboard service. BluetoothManager is activated in its init().
-        clipboardService.start()
-        print("App setup finished. ViewModel is ready.")
+            // 2. Create the ViewModel
+            self.model = AppViewModel(bluetoothService: bluetoothService, clipboardService: clipboardService)
+
+            // 3. Start services
+            clipboardService.start()
+            print("--- App Logic: Services started ---")
+        }
+        
+        // Permissions
+        Task {
+            let _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
+        }
+    }
+    
+    func finalizeSetup() {
+        print("--- App Logic: Setup finalized by user ---")
+        if EncryptionService.shared.isReady {
+            self.status = .ready
+            Task { await setup() }
+        }
     }
 }
