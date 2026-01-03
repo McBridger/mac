@@ -17,11 +17,10 @@ public final class AppLogic {
     public let clipboardHistory = CurrentValueSubject<[String], Never>([])
     
     // MARK: - Services
-    private var bluetoothService: BluetoothManager?
-    private var clipboardService: ClipboardManager?
-    
+    @Injected(\.clipboardManager) private var clipboardService: ClipboardManager
     @Injected(\.encryptionService) private var encryptionService
     @Injected(\.notificationService) private var notificationService
+    private var bluetoothService: BluetoothManager?
     
     private var cancellables = Set<AnyCancellable>()
     private var transportCancellables = Set<AnyCancellable>()
@@ -35,6 +34,21 @@ public final class AppLogic {
             guard let self = self else { return }
             self.logger.info("--- Broker: Bootstrapping on background queue ---")
             
+            // 1. Listen to clipboard updates
+            self.clipboardService.$update
+                .subscribe(on: self.queue)
+                .compactMap { $0 }
+                .sink { [weak self] message in
+                    guard let self = self else { return }
+                    // A. Always add to history
+                    self.addToHistory(message.value)
+                    
+                    // B. Attempt to send via Bluetooth if it's available
+                    self.bluetoothService?.send(message: message)
+                }
+                .store(in: &self.cancellables)
+            
+            // 2. Reactive transport setup
             self.encryptionService.$isReady
                 .sink { isReady in
                     if isReady {
@@ -95,18 +109,14 @@ public final class AppLogic {
         self.state.send(.transportInitializing)
         self.logger.info("--- Broker: Initializing transport components ---")
         
-        // 2. Create services
+        // 2. Create/Get services
         let bt = Container.shared.bluetoothManager()
-        let cb = Container.shared.clipboardManager()
-        
         self.bluetoothService = bt
-        self.clipboardService = cb
         
         // 3. Bind
-        bindTransport(bt: bt, cb: cb)
+        bindTransport(bt: bt)
         
         // 4. Start
-        cb.start()
         bt.start()
         
         self.state.send(.ready)
@@ -116,15 +126,13 @@ public final class AppLogic {
     private func stopTransport() {
         transportCancellables.removeAll()
         bluetoothService?.stop()
-        clipboardService?.stop()
         bluetoothService = nil
-        clipboardService = nil
         
         self.devices.send([])
         self.connectionState.send(.disconnected)
     }
 
-    private func bindTransport(bt: BluetoothManager, cb: ClipboardManager) {
+    private func bindTransport(bt: BluetoothManager) {
         // A. Bluetooth Power
         bt.$power
             .subscribe(on: queue)
@@ -151,16 +159,7 @@ public final class AppLogic {
             .sink { [weak self] d in self?.devices.send(d) }
             .store(in: &transportCancellables)
 
-        // D. OUTGOING: Local Clipboard -> Bluetooth
-        cb.$update
-            .subscribe(on: queue)
-            .compactMap { $0 }
-            .sink { message in
-                bt.send(message: message)
-            }
-            .store(in: &transportCancellables)
-
-        // E. INCOMING: Bluetooth -> Local Clipboard & History
+        // D. INCOMING: Bluetooth -> Local Clipboard & History
         bt.$message
             .subscribe(on: queue)
             .compactMap { $0 }
@@ -168,7 +167,7 @@ public final class AppLogic {
             .sink { [weak self] message in
                 guard let self = self else { return }
                 
-                cb.setText(message.value)
+                self.clipboardService.setText(message.value)
                 self.addToHistory(message.value)
                 
                 let senderName = self.devices.value.first { $0.id.uuidString == message.address }?.name ?? "Android Device"
@@ -176,16 +175,6 @@ public final class AppLogic {
                     title: "Clipboard Synced",
                     body: "Received from \(senderName): \(message.value.prefix(50))..."
                 )
-            }
-            .store(in: &transportCancellables)
-            
-        // F. Local updates to history
-        cb.$update
-            .subscribe(on: queue)
-            .compactMap { $0 }
-            .map { $0.value }
-            .sink { [weak self] text in
-                self?.addToHistory(text)
             }
             .store(in: &transportCancellables)
     }

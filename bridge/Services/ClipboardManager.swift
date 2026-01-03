@@ -24,10 +24,19 @@ public class ClipboardManager {
         self.pasteboard = pasteboard
         self.pollingInterval = pollingInterval
         self.lastChangeCount = pasteboard.changeCount
-        logger.info("ClipboardManager initialized")
+        
+        logger.info("ClipboardManager initialized. Starting monitoring...")
+        
+        self.timerCancellable = Timer
+            .publish(every: pollingInterval, on: .main, in: .common) 
+            .autoconnect()
+            .sink { [weak self] _ in
+                self?.checkPasteboard()
+            }
     }
     
     deinit {
+        timerCancellable?.cancel()
         logger.info("ClipboardManager deinitialized")
     }
     
@@ -42,26 +51,6 @@ public class ClipboardManager {
         pasteboard.setString(text, forType: .string)
         self.lastChangeCount = pasteboard.changeCount
         logger.info("Set new text to pasteboard.")
-    }
-    
-    public func start() {
-        logger.info("Starting clipboard monitoring...")
-        stop()
-        
-        timerCancellable = Timer
-            .publish(every: pollingInterval, on: .main, in: .common) 
-            .autoconnect()
-            .sink { [weak self] _ in
-                self?.checkPasteboard()
-            }
-    }
-
-    public func stop() {
-        if timerCancellable != nil {
-            logger.info("Stopping clipboard monitoring.")
-            timerCancellable?.cancel()
-            timerCancellable = nil
-        }
     }
 
     // MARK: - Private Methods

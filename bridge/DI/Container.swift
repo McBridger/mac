@@ -12,7 +12,7 @@ extension Container {
     }
     
     var clipboardManager: Factory<ClipboardManager> {
-        self { ClipboardManager() }
+        self { ClipboardManager() }.singleton
     }
 
     var notificationService: Factory<NotificationService> {
