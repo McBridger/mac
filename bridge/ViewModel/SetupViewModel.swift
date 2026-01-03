@@ -4,8 +4,6 @@ import Factory
 
 @MainActor
 class SetupViewModel: ObservableObject {
-    @Injected(\.derivationService) private var derivationService
-    
     @Published var words: [String]
     @Published var isValid: Bool = false
     

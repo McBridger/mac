@@ -7,10 +7,6 @@ extension Container {
         self { EncryptionService() }.singleton
     }
     
-    var derivationService: Factory<KeyDerivationService> {
-        self { KeyDerivationService() }.singleton
-    }
-
     var bluetoothManager: Factory<BluetoothManager> {
         self { BluetoothManager() }
     }

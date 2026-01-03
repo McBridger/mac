@@ -65,7 +65,7 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate {
                     return
                 }
                 
-                guard let data = message.toEncryptedData() else {
+                guard let data = self.encryptionService.encryptMessage(message) else {
                     Logger.bluetooth.error("❌ Cannot send: Encryption failed")
                     return
                 }
@@ -237,7 +237,7 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate {
     
     private func handleWrite(value: Data, from centralID: UUID) {
         do {
-            let message = try BridgerMessage.fromEncryptedData(value, address: centralID.uuidString)
+            let message = try self.encryptionService.decryptMessage(value, address: centralID.uuidString)
             Logger.bluetooth.info("Message received & decrypted: Type \(message.type.rawValue)")
             
             switch message.type {

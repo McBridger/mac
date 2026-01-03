@@ -119,4 +119,28 @@ public final class EncryptionService {
             return derivedKey.withUnsafeBytes { Data($0) }
         }
     }
+
+    // MARK: - AES-GCM Cryptography
+
+    public func encrypt(_ data: Data, key: Data) -> Data? {
+        do {
+            let symmetricKey = SymmetricKey(data: key)
+            let sealedBox = try AES.GCM.seal(data, using: symmetricKey)
+            return sealedBox.combined
+        } catch {
+            logger.error("Encryption failed: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    public func decrypt(_ data: Data, key: Data) -> Data? {
+        do {
+            let symmetricKey = SymmetricKey(data: key)
+            let sealedBox = try AES.GCM.SealedBox(combined: data)
+            return try AES.GCM.open(sealedBox, using: symmetricKey)
+        } catch {
+            logger.error("Decryption failed: \(error.localizedDescription)")
+            return nil
+        }
+    }
 }
