@@ -3,81 +3,121 @@ import CoreBluetooth
 import SystemConfiguration
 import OSLog
 import Combine
-import CoreModels
-import EncryptionService
+import Factory
 
-public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, ObservableObject {
+public class BluetoothManager: NSObject, CBPeripheralManagerDelegate {
+    @Injected(\.encryptionService) private var encryptionService
 
-    // MARK: - Public Publishers
     @UseState public private(set) var power: BluetoothPowerState = .poweredOff
     @UseState public private(set) var connection: ConnectionState = .disconnected
     @UseState public private(set) var devices: [DeviceInfo] = []
     @Event public private(set) var message: BridgerMessage?
 
-    // MARK: - Private State
     private var connections: [UUID: (device: DeviceInfo, central: CBCentral)] = [:]
     private var textCharacteristic: CBMutableCharacteristic?
     private var nameRequestTasks: [UUID: DispatchSourceTimer] = [:]
     private let nameRequestTimeout: TimeInterval = 5.0
 
-    // MARK: - Private Combine Subjects & Cancellables
     private let sendSubject = PassthroughSubject<BridgerMessage, Never>()
     private var cancellables = Set<AnyCancellable>()
 
-    // MARK: - CoreBluetooth Properties
     private let queue = DispatchQueue(label: "com.mcbridge.bluetooth-background-queue")
-    private lazy var peripheralManager: CBPeripheralManager = {
-        CBPeripheralManager(delegate: self, queue: self.queue)
-    }()
+    private var _peripheralManager: CBPeripheralManager?
+
+    private var peripheralManager: CBPeripheralManager {
+        if let pm = _peripheralManager { return pm }
+        let pm = CBPeripheralManager(delegate: self, queue: self.queue)
+        _peripheralManager = pm
+        return pm
+    }
 
     private var advertiseUUID: CBUUID { 
-        CBUUID(data: EncryptionService.shared.derive(info: "McBridge_Advertise_UUID", count: 16)!)
+        CBUUID(data: encryptionService.derive(info: "McBridge_Advertise_UUID", count: 16) ?? Data())
     }
     
     private var serviceUUID: CBUUID { 
-        CBUUID(data: EncryptionService.shared.derive(info: "McBridge_Service_UUID", count: 16)!)
+        CBUUID(data: encryptionService.derive(info: "McBridge_Service_UUID", count: 16) ?? Data())
     }
 
     private var characteristicUUID: CBUUID { 
-        CBUUID(data: EncryptionService.shared.derive(info: "McBridge_Characteristic_UUID", count: 16)!)
+        CBUUID(data: encryptionService.derive(info: "McBridge_Characteristic_UUID", count: 16) ?? Data())
     }
 
-    // MARK: - Lifecycle
     public override init() {
         super.init()
         
-        queue.async { _ = self.peripheralManager }
-
         sendSubject
             .receive(on: queue)
             .sink { [weak self] message in
                 guard let self = self else { return }
-                guard self.power == .poweredOn else { return }
-                guard !self.connections.isEmpty else { return }
-                guard let char = self.textCharacteristic else { return }
-                guard let data = message.toEncryptedData() else { return }
-
-                let targetCentrals = self.connections.values
-                    .filter { $0.device.isIntroduced }
-                    .map { $0.central }
-
-                guard !targetCentrals.isEmpty else {
-                    Logger.bluetooth.info("No introduced devices to send message to.")
+                guard self.power == .poweredOn else {
+                    Logger.bluetooth.error("❌ Cannot send: Bluetooth is OFF")
+                    return
+                }
+                
+                if self.connections.isEmpty {
+                    Logger.bluetooth.warning("⚠️ Cannot send: No devices connected")
                     return
                 }
 
-                self.peripheralManager.updateValue(data, for: char, onSubscribedCentrals: targetCentrals)
-                Logger.bluetooth.info("Sent an encrypted message of type \(message.type.rawValue) to \(targetCentrals.count) device(s).")
+                guard let char = self.textCharacteristic else {
+                    Logger.bluetooth.error("❌ Cannot send: Characteristic not initialized")
+                    return
+                }
+                
+                guard let data = message.toEncryptedData() else {
+                    Logger.bluetooth.error("❌ Cannot send: Encryption failed")
+                    return
+                }
+
+                let introducedDevices = self.connections.values.filter { $0.device.isIntroduced }
+                let targetCentrals = introducedDevices.map { $0.central }
+
+                if targetCentrals.isEmpty {
+                    Logger.bluetooth.warning("⚠️ No 'introduced' devices found. Total connected: \(self.connections.count).")
+                    for (id, conn) in self.connections {
+                        Logger.bluetooth.debug("   - Connected device: \(conn.device.name) (ID: \(id), Introduced: \(conn.device.isIntroduced))")
+                    }
+                    return
+                }
+
+                let success = self.peripheralManager.updateValue(data, for: char, onSubscribedCentrals: targetCentrals)
+                
+                if success {
+                    Logger.bluetooth.info("✅ Successfully queued encrypted message for \(targetCentrals.count) device(s).")
+                } else {
+                    Logger.bluetooth.error("❌ Local transmit queue is full. Message dropped by CoreBluetooth.")
+                }
             }
             .store(in: &cancellables)
     }
     
+    public func start() {
+        Logger.bluetooth.info("BluetoothManager: Explicit start requested.")
+        _ = peripheralManager // Triggers lazy creation of CBPeripheralManager
+    }
+
+    public func stop() {
+        Logger.bluetooth.info("BluetoothManager: Stopping and cleaning up.")
+        if let pm = _peripheralManager {
+            pm.stopAdvertising()
+            pm.removeAllServices()
+            pm.delegate = nil
+            _peripheralManager = nil
+        }
+        connections.removeAll()
+        nameRequestTasks.values.forEach { $0.cancel() }
+        nameRequestTasks.removeAll()
+        updateState(state: &self.power, to: .poweredOff)
+        updateState(state: &self.connection, to: .disconnected)
+        reportUpdatedDeviceList()
+    }
+
     public func send(message: BridgerMessage) {
+        Logger.bluetooth.debug("➡️ Attempting to send message of type \(message.type.rawValue)")
         sendSubject.send(message)
     }
 
-    // MARK: - Delegate Methods
-    
     public func peripheralManagerDidUpdateState(_ peripheral: CBPeripheralManager) {
         let newState: BluetoothPowerState = (peripheral.state == .poweredOn) ? .poweredOn : .poweredOff
         if self.power == newState { return }
@@ -158,10 +198,8 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, Observable
         peripheral.respond(to: request, withResult: .success)
     }
     
-    // MARK: - Private Logic
-    
     private func setupService() {
-        guard EncryptionService.shared.isReady else {
+        guard encryptionService.isReady else {
             Logger.bluetooth.warning("Cannot setup service: Encryption not set.")
             return
         }
@@ -179,7 +217,7 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, Observable
     
     private func startAdvertising() {
         guard self.connection != .advertising else { return }
-        guard EncryptionService.shared.isReady else {
+        guard encryptionService.isReady else {
             Logger.bluetooth.warning("Cannot start advertising: Encryption not set.")
             return
         }

@@ -1,12 +1,11 @@
+import OSLog
 import AppKit
 import Foundation
 import Combine
-import CoreModels
 import OSLog
 
 private let logger = Logger(subsystem: "com.yourcompany.ClipboardService", category: "ClipboardManager")
 
-@MainActor
 public class ClipboardManager {
     // MARK: - Public Publisher
 

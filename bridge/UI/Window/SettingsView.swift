@@ -1,6 +1,4 @@
 import SwiftUI
-import EncryptionService
-import CoreModels
 
 struct SettingsView: View {
     @ObservedObject var viewModel: AppViewModel

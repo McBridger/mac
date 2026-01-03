@@ -5,7 +5,7 @@ struct SetupView: View {
     @FocusState private var focusedField: Int?
     @Environment(\.dismiss) private var dismiss
     
-    let onComplete: () -> Void
+    let onComplete: (String) -> Void
 
     var body: some View {
         VStack(spacing: 20) {
@@ -55,10 +55,10 @@ struct SetupView: View {
                 
                 Button(action: {
                     withAnimation {
-                        viewModel.completeSetup()
-                        onComplete()
-                        dismiss() // Close the window
-                        NSApp.hide(nil) // Go to background
+                        let mnemonic = viewModel.getMnemonic()
+                        onComplete(mnemonic)
+                        dismiss()
+                        NSApp.hide(nil)
                     }
                 }) {
                     Text("Finish Setup")

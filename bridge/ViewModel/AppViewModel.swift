@@ -1,77 +1,65 @@
+import Factory
 import Foundation
 import Combine
 import AppKit
-import CoreModels
-import BluetoothService
-import ClipboardService
-import EncryptionService
 
 @MainActor
 class AppViewModel: ObservableObject {
-    // MARK: - Published Properties for UI
+    // MARK: - Published Properties (Locked to MainActor)
+    @Published var state: BrokerState = .idle
     @Published var bluetoothPowerState: BluetoothPowerState = .poweredOff
     @Published var connectionState: ConnectionState = .disconnected
     @Published var connectedDevices: [DeviceInfo] = []
     @Published var clipboardHistory: [String] = []
     
-    var storedMnemonic: String? {
-        EncryptionService.shared.storedMnemonic
-    }
-
-    // MARK: - Services
-    private let bluetoothService: BluetoothManager
-    private let clipboardService: ClipboardManager
-
+    @Injected(\.appLogic) private var appLogic
+    
     private var cancellables = Set<AnyCancellable>()
 
-    init(bluetoothService: BluetoothManager, clipboardService: ClipboardManager) {
-        self.bluetoothService = bluetoothService
-        self.clipboardService = clipboardService
+    init() {
         setupBindings()
     }
     
+    func setup(mnemonic: String) {
+        appLogic.setup(mnemonic: mnemonic)
+    }
+    
     func resetSecurity() {
-        EncryptionService.shared.reset()
-        NSApplication.shared.terminate(self) // Pass self as sender
+        appLogic.reset()
     }
 
+    var storedMnemonic: String? {
+        if let data = KeychainHelper.load(key: .mnemonic) {
+            return String(data: data, encoding: .utf8)
+        }
+        return nil
+    }
+    
     private func setupBindings() {
-        // MARK: - Bluetooth State Bindings
-        bluetoothService.$power
-            .receive(on: DispatchQueue.main)
-            .assign(to: \.bluetoothPowerState, on: self)
-            .store(in: &cancellables)
-
-        bluetoothService.$connection
-            .receive(on: DispatchQueue.main)
-            .assign(to: \.connectionState, on: self)
+        // We listen to the Broker (AppLogic) and bring everything to the Main Thread
+        appLogic.state
+            .receive(on: RunLoop.main)
+            .sink { [weak self] in self?.state = $0 }
             .store(in: &cancellables)
             
-        bluetoothService.$devices
-            .receive(on: DispatchQueue.main)
-            .assign(to: \.connectedDevices, on: self)
+        appLogic.bluetoothPower
+            .receive(on: RunLoop.main)
+            .sink { [weak self] in self?.bluetoothPowerState = $0 }
             .store(in: &cancellables)
-        
-        // MARK: - Flow Bindings
-        
-        // Flow 1: Local clipboard changes -> Send over Bluetooth
-        clipboardService.$update
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] message in
-                self?.bluetoothService.send(message: message)
-                self?.clipboardHistory.append(message.value)
-            }
+            
+        appLogic.connectionState
+            .receive(on: RunLoop.main)
+            .sink { [weak self] in self?.connectionState = $0 }
             .store(in: &cancellables)
-
-        // Flow 2: Remote messages -> Apply to local clipboard
-        bluetoothService.$message
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] message in
-                if message.type == .CLIPBOARD {
-                    self?.clipboardService.setText(message.value)
-                }
-            }
+            
+        appLogic.devices
+            .receive(on: RunLoop.main)
+            .sink { [weak self] in self?.connectedDevices = $0 }
+            .store(in: &cancellables)
+            
+        appLogic.clipboardHistory
+            .receive(on: RunLoop.main)
+            .sink { [weak self] in self?.clipboardHistory = $0 }
             .store(in: &cancellables)
     }
 }
-

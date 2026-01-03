@@ -1,9 +1,7 @@
+import CryptoKit
+import Factory
 import Foundation
 import OSLog
-import CryptoKit
-import EncryptionService
-
-// MARK: - Message Protocol Structs
 
 public enum MessageType: Int, Codable, Sendable {
     case CLIPBOARD = 0
@@ -46,13 +44,13 @@ public struct BridgerMessage: Codable, Sendable {
     /// Encrypts the message data for secure transfer
     public func toEncryptedData() -> Data? {
         guard let data = self.toData() else { return nil }
-        guard let keyData = EncryptionService.shared.derive(info: "McBridge_Encryption_Domain", count: 32) else { return nil }
+        guard let keyData = Container.shared.encryptionService().derive(info: "McBridge_Encryption_Domain", count: 32) else { return nil }
         return BridgerMessage.encrypt(data, key: SymmetricKey(data: keyData))
     }
     
     /// Decrypts and creates a BridgerMessage from encrypted BLE data
     public static func fromEncryptedData(_ data: Data, address: String? = nil) throws -> BridgerMessage {
-        guard let keyData = EncryptionService.shared.derive(info: "McBridge_Encryption_Domain", count: 32) else {
+        guard let keyData = Container.shared.encryptionService().derive(info: "McBridge_Encryption_Domain", count: 32) else {
             throw BridgerMessageError.decryptionFailed
         }
         

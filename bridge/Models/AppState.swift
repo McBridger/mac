@@ -13,6 +13,15 @@ public enum ConnectionState: String, Sendable {
     case connected = "Connected to Android"
 }
 
+public enum BrokerState: String, Sendable {
+    case idle = "Idle"
+    case encrypting = "Deriving Keys..."
+    case ready = "Ready"
+    case advertising = "Advertising..."
+    case connected = "Connected"
+    case error = "Error"
+}
+
 public enum BluetoothEvent: Sendable {
     case powerStateChanged(BluetoothPowerState)
     case connectionStateChanged(ConnectionState)

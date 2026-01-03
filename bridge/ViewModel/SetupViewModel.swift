@@ -1,10 +1,11 @@
 import Foundation
 import Combine
-import EncryptionService
-import CoreModels
+import Factory
 
 @MainActor
 class SetupViewModel: ObservableObject {
+    @Injected(\.derivationService) private var derivationService
+    
     @Published var words: [String]
     @Published var isValid: Bool = false
     
@@ -37,12 +38,7 @@ class SetupViewModel: ObservableObject {
         }
     }
     
-    func completeSetup() {
-        guard isValid else { return }
-        let mnemonic = words.joined(separator: "-")
-        
-        // Ensure service is bootstrapped with salt before setup
-        EncryptionService.shared.bootstrap(saltHex: AppConfig.encryptionSalt)
-        EncryptionService.shared.setup(with: mnemonic)
+    func getMnemonic() -> String {
+        words.joined(separator: "-")
     }
 }
