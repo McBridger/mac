@@ -76,13 +76,14 @@ public final class AppLogic {
             
             self.encryptionService.reset()
                 .sink { _ in
-                    self.logger.info("--- Broker: Reset complete, terminating app ---")
-                    DispatchQueue.main.async {
-                        NSApp.terminate(nil)
-                    }
+                    self.logger.info("--- Broker: Reset complete, returning to IDLE state ---")
                 }
                 .store(in: &self.cancellables)
         }
+    }
+
+    public var storedMnemonic: String? {
+        encryptionService.storedMnemonic
     }
 
     // MARK: - Internal Transport Management (Always on queue)
@@ -90,6 +91,9 @@ public final class AppLogic {
     private func setupTransport() {
         // 1. Clean up
         stopTransport()
+        
+        self.state.send(.transportInitializing)
+        self.logger.info("--- Broker: Initializing transport components ---")
         
         // 2. Create services
         let bt = Container.shared.bluetoothManager()
@@ -106,6 +110,7 @@ public final class AppLogic {
         bt.start()
         
         self.state.send(.ready)
+        self.logger.info("--- Broker: Transport components started, state: READY ---")
     }
 
     private func stopTransport() {

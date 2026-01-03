@@ -29,19 +29,31 @@ class AppViewModel: ObservableObject {
     }
 
     var storedMnemonic: String? {
-        if let data = KeychainHelper.load(key: .mnemonic) {
-            return String(data: data, encoding: .utf8)
-        }
-        return nil
+        appLogic.storedMnemonic
     }
     
     private func setupBindings() {
-        // We listen to the Broker (AppLogic) and bring everything to the Main Thread
-        appLogic.state
+        // 1. Unified Status (The Brain)
+        Publishers.CombineLatest3(appLogic.state, appLogic.bluetoothPower, appLogic.connectionState)
             .receive(on: RunLoop.main)
-            .sink { [weak self] in self?.state = $0 }
-            .store(in: &cancellables)
-            
+            .map { logicState, power, connection -> BrokerState in
+                if logicState == .idle || logicState == .encrypting {
+                    return logicState
+                }
+                
+                if power == .poweredOff {
+                    return .bluetoothOff
+                }
+                
+                switch connection {
+                case .advertising: return .advertising
+                case .connected: return .connected
+                case .disconnected: return .ready
+                }
+            }
+            .assign(to: &$state)
+
+        // 2. Individual mirrors for backward compatibility or specific UI elements
         appLogic.bluetoothPower
             .receive(on: RunLoop.main)
             .sink { [weak self] in self?.bluetoothPowerState = $0 }

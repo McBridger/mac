@@ -5,6 +5,7 @@ import Factory
 struct bridgeApp: App {
     @StateObject private var viewModel = AppViewModel()
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.openSettings) private var openSettings   
     
     init() {
         Container.shared.appLogic().bootstrap()
@@ -26,31 +27,29 @@ struct bridgeApp: App {
             }
         } label: {
             Image("MenuBarIcon")
-        }
-        .onChange(of: viewModel.state) { oldValue, newValue in
-            if newValue == .idle {
-                showSetup()
-            }
+                .background(
+                    Color.clear
+                        .onAppear {
+                            if viewModel.state == .idle {
+                                showSetup()
+                            }
+                        }
+                        .onChange(of: viewModel.state) { oldValue, newValue in
+                            if newValue == .idle {
+                                showSetup()
+                            }
+                        }
+                )
         }
 
-        // Window 1: Initial Setup
-        Window("McBridger Setup", id: "setup") {
-            SetupView { mnemonic in
-                viewModel.setup(mnemonic: mnemonic)
-            }
-        }
-        .windowResizability(.contentSize)
-        .windowStyle(.hiddenTitleBar)
-
-        // Window 2: Regular Settings
-        Window("McBridger Settings", id: "settings") {
+        Settings {
             SettingsView(viewModel: viewModel)
         }
-        .windowResizability(.contentSize)
     }
     
     private func showSetup() {
+        NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
-        openWindow(id: "setup")
+        openSettings()
     }
 }

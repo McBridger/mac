@@ -1,97 +1,189 @@
 import SwiftUI
+import Factory
 
+// MARK: - Main View
 struct SettingsView: View {
     @ObservedObject var viewModel: AppViewModel
-    @SwiftUI.State private var showingMnemonic = false
     
     var body: some View {
         TabView {
-            securitySection
+            SecurityView(viewModel: viewModel)
                 .tabItem {
                     Label("Security", systemImage: "lock.shield")
                 }
             
-            aboutSection
+            AboutView()
                 .tabItem {
                     Label("About", systemImage: "info.circle")
                 }
         }
-        .frame(width: 450, height: 300)
+        .frame(width: 520)
+        .onAppear { NSApp.setActivationPolicy(.regular) }
+        .onDisappear { NSApp.setActivationPolicy(.accessory) }
     }
+}
+
+// MARK: - Security Tab Orchestrator
+struct SecurityView: View {
+    @ObservedObject var viewModel: AppViewModel
+    @State private var words: [String] = Array(repeating: "", count: AppConfig.mnemonicLength)
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                if viewModel.state == .idle || viewModel.state == .encrypting {
+                    SetupSectionView(words: $words) { mnemonic in
+                        viewModel.setup(mnemonic: mnemonic)
+                        words = Array(repeating: "", count: AppConfig.mnemonicLength)
+                    }
+                } else if let mnemonic = viewModel.storedMnemonic {
+                    SecurityConfigView(mnemonic: mnemonic) {
+                        viewModel.resetSecurity()
+                    }
+                } else {
+                    Text("State Error").foregroundColor(.red)
+                }
+            }
+            .padding(24)
+        }
+    }
+}
+
+// MARK: - Atomic Components
+
+struct SetupSectionView: View {
+    @Binding var words: [String]
+    let onComplete: (String) -> Void
     
-    private var securitySection: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("Security Configuration")
-                .font(.headline)
-            
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Sync Phrase")
+    var body: some View {
+        VStack(spacing: 20) {
+            VStack(spacing: 8) {
+                Image(systemName: "lock.shield.fill")
+                    .font(.system(size: 48))
+                    .foregroundColor(.accentColor)
+                
+                Text("Setup McBridger")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                
+                Text("Enter the \(words.count)-word phrase from your Android device to enable secure synchronization.")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
-                
-                HStack {
-                    if showingMnemonic {
-                        Text(viewModel.storedMnemonic?.replacingOccurrences(of: "-", with: " ") ?? "None")
-                            .font(.system(.body, design: .monospaced))
-                            .textSelection(.enabled)
-                    } else {
-                        Text("•••• •••• •••• •••• •••• ••••")
-                            .font(.system(.body, design: .monospaced))
-                    }
-                    
-                    Spacer()
-                    
-                    Button(showingMnemonic ? "Hide" : "Reveal") {
-                        showingMnemonic.toggle()
-                    }
-                }
-                .padding(10)
-                .background(Color.secondary.opacity(0.1))
-                .cornerRadius(8)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 20)
             }
-            
-            Divider()
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Danger Zone")
-                    .font(.subheadline)
-                    .foregroundColor(.red)
-                
-                Text("Resetting security will delete your local keys and terminate the app. You will need to re-setup the sync phrase on next launch.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                
-                Button("Reset Security & Quit", role: .destructive) {
-                    viewModel.resetSecurity()
-                }
-                .buttonStyle(.bordered)
+
+            GroupBox {
+                MnemonicForm(
+                    wordCount: words.count,
+                    words: $words,
+                    onComplete: {
+                        let mnemonic = words.map { $0.trimmingCharacters(in: .whitespaces) }.joined(separator: "-")
+                        onComplete(mnemonic)
+                    }
+                )
+                .padding(8)
             }
-            
             Spacer()
         }
-        .padding(24)
     }
+}
+
+struct SecurityConfigView: View {
+    let mnemonic: String
+    let onReset: () -> Void
     
-    private var aboutSection: some View {
-        VStack(spacing: 15) {
-            Image(nsImage: NSApp.applicationIconImage)
-                .resizable()
-                .frame(width: 64, height: 64)
+    var body: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            GroupBox(label: Label("Current Configuration", systemImage: "key.fill").foregroundColor(.accentColor)) {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Your synchronization phrase is active. Use this same phrase on your Android device to link them.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    
+                    MnemonicDisplay(mnemonic: mnemonic)
+                        .padding(.top, 4)
+                }
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
             
-            Text("McBridger for macOS")
-                .font(.headline)
-            
-            Text("Version 1.0.0")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-            
-            Text("Secure clipboard synchronization between your devices.")
-                .font(.caption)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-            
+            GroupBox(label: Label("Danger Zone", systemImage: "exclamationmark.triangle.fill").foregroundColor(.red)) {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Resetting security will permanently delete your local encryption keys. You will need to re-setup the sync phrase to continue.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    
+                    Button(role: .destructive, action: onReset) {
+                        Text("Reset Security & Clear Keys")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.red)
+                }
+                .padding(12)
+            }
+        }
+    }
+}
+
+struct AboutView: View {
+    private var appVersion: String {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String
+        if let version, !version.isEmpty, let build, !build.isEmpty { return "\(version) (\(build))" }
+        return "Development Build"
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Spacer()
+            VStack(spacing: 16) {
+                Image(nsImage: NSApp.applicationIconImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 96, height: 96)
+                    .shadow(radius: 4)
+                
+                VStack(spacing: 4) {
+                    Text("McBridger").font(.system(size: 24, weight: .bold))
+                    Text("Version \(appVersion)").font(.subheadline).foregroundColor(.secondary)
+                }
+            }
+            Divider().padding(.vertical, 24)
+            VStack(spacing: 12) {
+                Text("Secure clipboard synchronization between your devices.").font(.body).multilineTextAlignment(.center)
+                Text("© 2026 McBridger Organization. All rights reserved.").font(.caption).foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 40)
             Spacer()
         }
-        .padding(32)
+        .background(Color(NSColor.windowBackgroundColor))
     }
+}
+
+// MARK: - PREVIEWS
+
+#Preview("Full Window") {
+    let _ = Container.shared.appLogic.register { AppLogic() }
+    SettingsView(viewModel: AppViewModel())
+}
+
+#Preview("Setup Section Only") {
+    SetupSectionView(words: .constant(["", "", "", "", "", ""])) { _ in }
+        .padding()
+        .frame(width: 500)
+}
+
+#Preview("Active Config Only") {
+    SecurityConfigView(mnemonic: "apple-banana-cherry-dog-elephant-fox") {}
+        .padding()
+        .frame(width: 500)
+}
+
+#Preview("About Screen Only") {
+    AboutView()
+        .frame(width: 500, height: 400)
 }

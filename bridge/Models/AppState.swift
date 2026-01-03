@@ -16,9 +16,14 @@ public enum ConnectionState: String, Sendable {
 public enum BrokerState: String, Sendable {
     case idle = "Idle"
     case encrypting = "Deriving Keys..."
+    case keysReady = "Keys Ready"
+    case transportInitializing = "Initializing..."
     case ready = "Ready"
     case advertising = "Advertising..."
+    case connecting = "Connecting..."
     case connected = "Connected"
+    case disconnected = "Disconnected"
+    case bluetoothOff = "Bluetooth Off"
     case error = "Error"
 }
 
