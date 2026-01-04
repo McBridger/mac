@@ -8,7 +8,7 @@ extension Container {
     }
     
     var bluetoothManager: Factory<BluetoothManager> {
-        self { BluetoothManager() }
+        self { BluetoothManager() }.singleton
     }
     
     var clipboardManager: Factory<ClipboardManager> {

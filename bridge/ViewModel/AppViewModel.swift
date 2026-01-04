@@ -5,36 +5,33 @@ import AppKit
 
 @MainActor
 class AppViewModel: ObservableObject {
-    // MARK: - Published Properties (Locked to MainActor)
+    // MARK: - Published Properties
     @Published var state: BrokerState = .idle
     @Published var bluetoothPowerState: BluetoothPowerState = .poweredOff
     @Published var connectionState: ConnectionState = .disconnected
     @Published var connectedDevices: [DeviceInfo] = []
     @Published var clipboardHistory: [String] = []
+    @Published var mnemonic: String? = nil
     
-    @Injected(\.appLogic) private var appLogic
+    @Injected(\.appLogic) private var logic
+    @Injected(\.encryptionService) private var encryption
+    @Injected(\.bluetoothManager) private var bluetooth
     
-    private var cancellables = Set<AnyCancellable>()
-
-    init() {
+    public init() {
         setupBindings()
     }
     
     func setup(mnemonic: String) {
-        appLogic.setup(mnemonic: mnemonic)
+        logic.setup(mnemonic: mnemonic)
     }
     
     func resetSecurity() {
-        appLogic.reset()
-    }
-
-    var storedMnemonic: String? {
-        appLogic.storedMnemonic
+        logic.reset()
     }
     
     private func setupBindings() {
         // 1. Unified Status (The Brain)
-        Publishers.CombineLatest3(appLogic.state, appLogic.bluetoothPower, appLogic.connectionState)
+        Publishers.CombineLatest3(logic.state, bluetooth.power, bluetooth.connection)
             .receive(on: RunLoop.main)
             .map { logicState, power, connection -> BrokerState in
                 if logicState == .idle || logicState == .encrypting {
@@ -46,32 +43,25 @@ class AppViewModel: ObservableObject {
                 }
                 
                 switch connection {
-                case .advertising: return .advertising
-                case .connected: return .connected
-                case .disconnected: return .ready
+                    case .advertising: return .advertising
+                    case .connected: return .connected
+                    case .disconnected: return .ready
                 }
             }
             .assign(to: &$state)
 
-        // 2. Individual mirrors for backward compatibility or specific UI elements
-        appLogic.bluetoothPower
+        // 2. Direct mirrors from BluetoothManager
+        bluetooth.power.receive(on: RunLoop.main).assign(to: &$bluetoothPowerState)
+        bluetooth.connection.receive(on: RunLoop.main).assign(to: &$connectionState)
+        bluetooth.devices.receive(on: RunLoop.main).assign(to: &$connectedDevices)
+        
+        // 3. Logic mirrors
+        logic.clipboardHistory.receive(on: RunLoop.main).assign(to: &$clipboardHistory)
+
+        // 4. Mnemonic state
+        encryption.mnemonic
+            .map { $0.isEmpty ? nil : $0 }
             .receive(on: RunLoop.main)
-            .sink { [weak self] in self?.bluetoothPowerState = $0 }
-            .store(in: &cancellables)
-            
-        appLogic.connectionState
-            .receive(on: RunLoop.main)
-            .sink { [weak self] in self?.connectionState = $0 }
-            .store(in: &cancellables)
-            
-        appLogic.devices
-            .receive(on: RunLoop.main)
-            .sink { [weak self] in self?.connectedDevices = $0 }
-            .store(in: &cancellables)
-            
-        appLogic.clipboardHistory
-            .receive(on: RunLoop.main)
-            .sink { [weak self] in self?.clipboardHistory = $0 }
-            .store(in: &cancellables)
+            .assign(to: &$mnemonic)
     }
 }

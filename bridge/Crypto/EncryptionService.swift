@@ -5,61 +5,53 @@ import Foundation
 import CommonCrypto
 
 public final class EncryptionService {
-    
     private let queue = DispatchQueue(label: "com.mcbridger.encryption-lock", attributes: .concurrent)
-    private var _masterKey: SymmetricKey?
-    private var _salt: Data?
-    
-    @UseState public private(set) var isReady: Bool = false
-    @UseState public private(set) var hasStoredMnemonic: Bool = false
-    
     private let logger = Logger(subsystem: "com.mcbridger.SecurityService", category: "Encryption")
+    private let _salt: Data = Data(hexString: AppConfig.encryptionSalt)!
+   
+    private var _masterKey: SymmetricKey?
+    
+    public let isReady = CurrentValueSubject<Bool, Never>(false)
+    public let mnemonic = CurrentValueSubject<String, Never>("")
     
     public init() {
-        self.hasStoredMnemonic = KeychainHelper.load(key: .mnemonic) != nil
-    }
+        let keyData = KeychainHelper.load(key: .masterKey)
+        let mnemonicData = KeychainHelper.load(key: .mnemonic)
 
-    public var storedMnemonic: String? {
-        guard let data = KeychainHelper.load(key: .mnemonic) else { return nil }
-        return String(data: data, encoding: .utf8)
-    }
+        if let keyData = keyData { self._masterKey = SymmetricKey(data: keyData)}
+        if let data = mnemonicData { self.mnemonic.send(String(data: data, encoding: .utf8) ?? "") }
 
-    /// Quick bootstrap: only loads pre-calculated key if it exists.
-    public func bootstrap(saltHex: String) {
-        let salt = Data(hexString: saltHex)
-        queue.async(flags: .barrier) { self._salt = salt }
-        
-        if let keyData = KeychainHelper.load(key: .masterKey) {
+        if (self.mnemonic.value != "") && (self._masterKey != nil) {
             logger.info("Found cached Master Key. Instant start.")
-            queue.async(flags: .barrier) {
-                self._masterKey = SymmetricKey(data: keyData)
-                self.isReady = true
-            }
+            self.isReady.send(true)
         } else {
             logger.info("No cached Master Key found. Manual setup required.")
         }
     }
     
     /// Heavy lifting: derives key from mnemonic and persists both for future instant starts.
-    public func setup(with passphrase: String) -> AnyPublisher<Bool, Never> {
-        let result = PassthroughSubject<Bool, Never>()
-        let salt = queue.sync { _salt }
-        
+    public func setup(with passphrase: String) {
+        let salt = self._salt
+
         DispatchQueue.global(qos: .userInitiated).async {
-            if let s = salt {
-                self.internalSetup(with: passphrase, salt: s)
-            } else {
-                self.logger.error("Setup failed: No salt available.")
+            guard let derivedKey = self.calculateKey(passphrase: passphrase, salt: salt) else {
+                self.logger.error("PBKDF2 failed during setup.")
+                return
             }
-            result.send(self.isReady)
-            result.send(completion: .finished)
+
+            self.queue.async(flags: .barrier) {
+                self._masterKey = derivedKey
+                self.mnemonic.send(passphrase)
+                KeychainHelper.save(passphrase.data(using: .utf8)!, for: .mnemonic)
+                KeychainHelper.save(derivedKey.withUnsafeBytes { Data($0) }, for: .masterKey)
+                self.isReady.send(true)
+                self.logger.info("Master Key derived and cached in Keychain.")
+            }
         }
-        
-        return result.eraseToAnyPublisher()
     }
 
-    private func internalSetup(with passphrase: String, salt: Data) {
-        guard let passwordData = passphrase.data(using: .utf8) else { return }
+    private func calculateKey(passphrase: String, salt: Data) -> SymmetricKey? {
+        guard let passwordData = passphrase.data(using: .utf8) else { return nil }
         
         var derivedBytes = [UInt8](repeating: 0, count: 32)
         let status = CCKeyDerivationPBKDF(
@@ -70,42 +62,18 @@ public final class EncryptionService {
             600_000,
             &derivedBytes, derivedBytes.count
         )
-        
-        guard status == kCCSuccess else {
-            logger.error("PBKDF2 failed during setup.")
-            return
-        }
-        
-        let derivedData = Data(derivedBytes)
-        let key = SymmetricKey(data: derivedData)
-        
-        queue.async(flags: .barrier) {
-            self._masterKey = key
-            
-            // Persist for instant access on next launch
-            if let data = passphrase.data(using: .utf8) {
-                KeychainHelper.save(data, for: .mnemonic)
-            }
-            KeychainHelper.save(derivedData, for: .masterKey)
-            
-            self.hasStoredMnemonic = true
-            self.isReady = true
-            self.logger.info("Master Key derived and cached in Keychain.")
-        }
+
+        return (status == kCCSuccess) ? SymmetricKey(data: Data(derivedBytes)) : nil
     }
 
-    public func reset() -> AnyPublisher<Void, Never> {
-        let done = PassthroughSubject<Void, Never>()
+    public func reset() {
         queue.async(flags: .barrier) {
             KeychainHelper.deleteAll()
             self._masterKey = nil
-            self.isReady = false
-            self.hasStoredMnemonic = false
+            self.mnemonic.send("")
+            self.isReady.send(false)
             self.logger.info("Security state reset confirmed.")
-            done.send()
-            done.send(completion: .finished)
         }
-        return done.eraseToAnyPublisher()
     }
 
     public func derive(info: String, count: Int) -> Data? {

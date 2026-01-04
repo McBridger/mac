@@ -36,7 +36,7 @@ struct SecurityView: View {
                         viewModel.setup(mnemonic: mnemonic)
                         words = Array(repeating: "", count: AppConfig.mnemonicLength)
                     }
-                } else if let mnemonic = viewModel.storedMnemonic {
+                } else if let mnemonic = viewModel.mnemonic {
                     SecurityConfigView(mnemonic: mnemonic) {
                         viewModel.resetSecurity()
                     }

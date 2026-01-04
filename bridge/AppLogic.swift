@@ -3,27 +3,24 @@ import Factory
 import Combine
 import OSLog
 import AppKit
+import CoreBluetooth
 
-/// AppLogic runs on background threads to handle orchestration, encryption, and transport.
+/// AppLogic (Broker) runs on background threads to handle orchestration, encryption, and transport.
 public final class AppLogic {
     private let logger = Logger(subsystem: "com.mcbridger.AppLogic", category: "Broker")
     private let queue = DispatchQueue(label: "com.mcbridger.broker-queue", qos: .userInitiated)
     
-    // MARK: - Subjects (Equivalent to StateFlow/SharedFlow in Kotlin)
+    // MARK: - Subjects
     public let state = CurrentValueSubject<BrokerState, Never>(.idle)
-    public let bluetoothPower = CurrentValueSubject<BluetoothPowerState, Never>(.poweredOff)
-    public let connectionState = CurrentValueSubject<ConnectionState, Never>(.disconnected)
-    public let devices = CurrentValueSubject<[DeviceInfo], Never>([])
     public let clipboardHistory = CurrentValueSubject<[String], Never>([])
     
     // MARK: - Services
     @Injected(\.clipboardManager) private var clipboardService: ClipboardManager
     @Injected(\.encryptionService) private var encryptionService
     @Injected(\.notificationService) private var notificationService
-    private var bluetoothService: BluetoothManager?
+    @Injected(\.bluetoothManager) private var bluetoothService: BluetoothManager
     
     private var cancellables = Set<AnyCancellable>()
-    private var transportCancellables = Set<AnyCancellable>()
 
     public init() {
         logger.info("--- Broker: Initializing background instance ---")
@@ -34,33 +31,68 @@ public final class AppLogic {
             guard let self = self else { return }
             self.logger.info("--- Broker: Bootstrapping on background queue ---")
             
-            // 1. Listen to clipboard updates
-            self.clipboardService.$update
+            // 1. Outgoing: Clipboard -> Encrypt -> Transport
+            self.clipboardService.update
                 .subscribe(on: self.queue)
                 .compactMap { $0 }
                 .sink { [weak self] message in
-                    guard let self = self else { return }
-                    // A. Always add to history
-                    self.addToHistory(message.value)
-                    
-                    // B. Attempt to send via Bluetooth if it's available
-                    self.bluetoothService?.send(message: message)
+                    self?.addToHistory(message.value)
+                    self?.sendToTransport(message)
                 }
                 .store(in: &self.cancellables)
             
-            // 2. Reactive transport setup
-            self.encryptionService.$isReady
-                .sink { isReady in
+            // 2. Lifecycle: Encryption Ready -> Setup Transport
+            self.encryptionService.isReady
+                .receive(on: self.queue)
+                .sink { [weak self] isReady in
                     if isReady {
-                        self.logger.info("--- Broker: Security READY, setting up transport ---")
-                        self.setupTransport()
+                        self?.logger.info("--- Broker: Security READY, setting up transport ---")
+                        self?.setupTransport()
                     } else {
-                        self.state.send(.idle)
+                        self?.state.send(.idle)
                     }
                 }
                 .store(in: &self.cancellables)
-                
-            self.encryptionService.bootstrap(saltHex: AppConfig.encryptionSalt)
+
+            // 3. Incoming Pipeline: Raw Bluetooth -> Decrypted Messages (Shared)
+            let incomingMessages = self.bluetoothService.data
+                .subscribe(on: self.queue)
+                .compactMap { $0 }
+                .flatMap(maxPublishers: .max(1)) { [weak self] (data, address) in
+                    Just((data, address))
+                        .tryMap { d, a in try self?.encryptionService.decryptMessage(d, address: a) }
+                        .compactMap { $0 }
+                        .catch { [weak self] error in
+                            self?.logger.error("--- Broker: Decryption error: \(error.localizedDescription) ---")
+                            return Empty<BridgerMessage, Never>()
+                        }
+                }
+                .share()
+
+            // Branch A: Clipboard Updates
+            incomingMessages
+                .filter { $0.type == .CLIPBOARD }
+                .sink { [weak self] message in
+                    self?.logger.info("--- Broker: Handling Incoming Clipboard ---")
+                    self?.clipboardService.setText(message.value)
+                    self?.addToHistory(message.value)
+                    self?.notificationService.showNotification(
+                        title: "Clipboard Synced",
+                        body: "New data received via McBridger"
+                    )
+                }
+                .store(in: &self.cancellables)
+
+            // Branch B: Device Introduction
+            incomingMessages
+                .filter { $0.type == .DEVICE_NAME }
+                .sink { [weak self] message in
+                    self?.logger.info("--- Broker: Handling Device Introduction: \(message.value) ---")
+                    if let address = message.address, let uuid = UUID(uuidString: address) {
+                        self?.bluetoothService.markDeviceAsIntroduced(id: uuid, name: message.value)
+                    }
+                }
+                .store(in: &self.cancellables)
         }
     }
     
@@ -69,15 +101,7 @@ public final class AppLogic {
             guard let self = self else { return }
             self.logger.info("--- Broker: Manual setup initiated ---")
             self.state.send(.encrypting)
-            
             self.encryptionService.setup(with: mnemonic)
-                .sink { success in
-                    if !success {
-                        self.state.send(.error)
-                        self.logger.error("--- Broker: Manual setup failed ---")
-                    }
-                }
-                .store(in: &self.cancellables)
         }
     }
     
@@ -85,100 +109,42 @@ public final class AppLogic {
         queue.async { [weak self] in
             guard let self = self else { return }
             self.logger.info("--- Broker: Full reset initiated ---")
-            
-            self.stopTransport()
-            
+            self.bluetoothService.stop()
             self.encryptionService.reset()
-                .sink { _ in
-                    self.logger.info("--- Broker: Reset complete, returning to IDLE state ---")
-                }
-                .store(in: &self.cancellables)
+            self.logger.info("--- Broker: Reset complete, returning to IDLE state ---")
         }
     }
 
-    public var storedMnemonic: String? {
-        encryptionService.storedMnemonic
-    }
-
-    // MARK: - Internal Transport Management (Always on queue)
+    // MARK: - Internal Orchestration
 
     private func setupTransport() {
-        // 1. Clean up
-        stopTransport()
-        
         self.state.send(.transportInitializing)
-        self.logger.info("--- Broker: Initializing transport components ---")
         
-        // 2. Create/Get services
-        let bt = Container.shared.bluetoothManager()
-        self.bluetoothService = bt
+        guard let advID = encryptionService.derive(info: "McBridge_Advertise_UUID", count: 16),
+              let svcID = encryptionService.derive(info: "McBridge_Service_UUID", count: 16),
+              let chrID = encryptionService.derive(info: "McBridge_Characteristic_UUID", count: 16) else {
+            self.logger.error("--- Broker: Failed to derive transport UUIDs ---")
+            self.state.send(.error)
+            return
+        }
         
-        // 3. Bind
-        bindTransport(bt: bt)
-        
-        // 4. Start
-        bt.start()
+        bluetoothService.start(
+            advertiseUUID: CBUUID(data: advID),
+            serviceUUID: CBUUID(data: svcID),
+            characteristicUUID: CBUUID(data: chrID)
+        )
         
         self.state.send(.ready)
-        self.logger.info("--- Broker: Transport components started, state: READY ---")
     }
 
-    private func stopTransport() {
-        transportCancellables.removeAll()
-        bluetoothService?.stop()
-        bluetoothService = nil
-        
-        self.devices.send([])
-        self.connectionState.send(.disconnected)
+    private func sendToTransport(_ message: BridgerMessage) {
+        guard let data = encryptionService.encryptMessage(message) else {
+            logger.error("--- Broker: Encryption failed for outgoing message ---")
+            return
+        }
+        bluetoothService.send(data: data)
     }
 
-    private func bindTransport(bt: BluetoothManager) {
-        // A. Bluetooth Power
-        bt.$power
-            .subscribe(on: queue)
-            .sink { [weak self] p in self?.bluetoothPower.send(p) }
-            .store(in: &transportCancellables)
-            
-        // B. Connection State -> Broker State
-        bt.$connection
-            .subscribe(on: queue)
-            .sink { [weak self] conn in
-                guard let self = self else { return }
-                self.connectionState.send(conn)
-                switch conn {
-                case .advertising: self.state.send(.advertising)
-                case .connected: self.state.send(.connected)
-                case .disconnected: self.state.send(.ready)
-                }
-            }
-            .store(in: &transportCancellables)
-            
-        // C. Devices
-        bt.$devices
-            .subscribe(on: queue)
-            .sink { [weak self] d in self?.devices.send(d) }
-            .store(in: &transportCancellables)
-
-        // D. INCOMING: Bluetooth -> Local Clipboard & History
-        bt.$message
-            .subscribe(on: queue)
-            .compactMap { $0 }
-            .filter { $0.type == .CLIPBOARD }
-            .sink { [weak self] message in
-                guard let self = self else { return }
-                
-                self.clipboardService.setText(message.value)
-                self.addToHistory(message.value)
-                
-                let senderName = self.devices.value.first { $0.id.uuidString == message.address }?.name ?? "Android Device"
-                self.notificationService.showNotification(
-                    title: "Clipboard Synced",
-                    body: "Received from \(senderName): \(message.value.prefix(50))..."
-                )
-            }
-            .store(in: &transportCancellables)
-    }
-    
     private func addToHistory(_ text: String) {
         var current = clipboardHistory.value
         if !current.contains(text) {

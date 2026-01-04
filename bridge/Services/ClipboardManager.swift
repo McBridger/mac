@@ -9,7 +9,7 @@ private let logger = Logger(subsystem: "com.yourcompany.ClipboardService", categ
 public class ClipboardManager {
     // MARK: - Public Publisher
 
-    @Event public private(set) var update: BridgerMessage?
+    public let update = PassthroughSubject<BridgerMessage, Never>()
 
     // MARK: - Private Properties
     
@@ -66,7 +66,7 @@ public class ClipboardManager {
 
         if let newText = pasteboard.string(forType: .string) {
             logger.info("New text found in pasteboard. Sending message.")
-            update = BridgerMessage(type: .CLIPBOARD, value: newText)
+            update.send(BridgerMessage(type: .CLIPBOARD, value: newText))
         } else {
             logger.warning("Pasteboard changed, but no string content found.")
         }
