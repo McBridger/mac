@@ -36,5 +36,8 @@ struct MnemonicForm: View {
             .buttonStyle(.borderedProminent)
             .disabled(words.contains { $0.isEmpty })
         }
+        .onAppear {
+            DispatchQueue.main.async { focusedField = 0 }
+        }
     }
 }

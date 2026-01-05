@@ -135,6 +135,12 @@ public final class AppLogic {
         )
         
         self.state.send(.ready)
+        DistributedNotificationCenter.default().postNotificationName(
+            NSNotification.Name("com.mcbridger.service.ready"),
+            object: nil,
+            userInfo: nil,
+            deliverImmediately: true
+        )
     }
 
     private func sendToTransport(_ message: BridgerMessage) {

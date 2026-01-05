@@ -26,11 +26,12 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_ALLOWED=NO
 
-      # - for now tests are disabled
-      # - name: Run Tests
-      #   run: |
-      #     xcodebuild test \
-      #       -project bridge.xcodeproj \
-      #       -scheme bridgeTests \
-      #       -destination 'platform=macOS'
+      - name: Run Tests
+        run: |
+          xcodebuild test \
+            -project bridge.xcodeproj \
+            -scheme bridge \
+            -destination 'platform=macOS' \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_ALLOWED=NO
 

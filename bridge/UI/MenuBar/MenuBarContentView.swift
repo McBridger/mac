@@ -5,59 +5,111 @@ struct MenuBarContentView: View {
     @Environment(\.openSettings) private var openSettings
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            
-            // Wrap text in buttons with an empty action to achieve the correct text colors
-            Button(action: {}) {
+        VStack(alignment: .leading, spacing: 12) {
+            // Header
+            HStack {
                 Text("McBridger")
                     .font(.headline)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                Spacer()
+                Button {
+                    NSApp.elevate()
+                    openSettings()
+                } label: {
+                    Image(systemName: "gearshape.fill")
+                }
+                .buttonStyle(.plain)
             }
-                        
-            Button(role: nil, action: {}) {
-                (Text("Status: ") + Text(model.bluetoothPowerState.rawValue).foregroundStyle(model.bluetoothPowerState == .poweredOn ? .green : .red))
-            }
-            .font(.caption)
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            Button(action: {}) {
-                Text("Connection: \(model.connectionState.rawValue)")
-                    .font(.caption)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-
+            
             Divider()
             
-            Button(action: {}) {
-                Text("Connected Devices:")
-                    .font(.caption)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            
-            if model.connectedDevices.isEmpty {
-                Text("No devices connected")
-                    .font(.caption2)
-                    .foregroundColor(.gray)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            } else {
-                ForEach(model.connectedDevices) { device in
-                    ConnectedDeviceRow(device: device)
+            // Status Info
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text("Bluetooth:")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    Text(model.bluetoothPowerState.rawValue)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(model.bluetoothPowerState == .poweredOn ? .green : .red)
+                }
+                
+                HStack {
+                    Text("Connection:")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    Text(model.connectionState.rawValue)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .accessibilityIdentifier("connection_status_text")
+                        .accessibilityValue(model.connectionState.rawValue)
                 }
             }
-
+            
             Divider()
-
-            Button("Settings...") {
-                openSettings()
-                NSApp.activate(ignoringOtherApps: true)
+            
+            // Devices Section
+            VStack(alignment: .leading, spacing: 8) {
+                Text("CONNECTED DEVICES")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.secondary)
+                
+                if model.connectedDevices.isEmpty {
+                    Text("Searching for Android devices...")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                        .italic()
+                        .padding(.vertical, 4)
+                } else {
+                    ForEach(model.connectedDevices) { device in
+                        ConnectedDeviceRow(device: device)
+                    }
+                }
             }
-
-            Button("Terminate") {
+            
+            Divider()
+            
+            // Clipboard History Section
+            VStack(alignment: .leading, spacing: 8) {
+                Text("RECENT HISTORY")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.secondary)
+                
+                if model.clipboardHistory.isEmpty {
+                    Text("No history yet")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                } else {
+                    ForEach(model.clipboardHistory, id: \.self) { item in
+                        Text(item)
+                            .font(.caption)
+                            .lineLimit(1)
+                            .padding(.vertical, 2)
+                            .accessibilityIdentifier("history_item_\(item)")
+                    }
+                }
+            }
+            
+            Divider()
+            Button(role: .destructive) {
                 NSApplication.shared.terminate(nil)
+            } label: {
+                HStack {
+                    Image(systemName: "power")
+                    Text("Quit McBridger")
+                }
+                .frame(maxWidth: .infinity)
             }
+            .buttonStyle(.bordered)
+            .tint(.red)
+            .controlSize(.small)
         }
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-        .buttonStyle(.plain)
+        .padding(16)
+        .frame(width: 280)
     }
+}
+
+#Preview {
+    MenuBarContentView()
+        .environmentObject(AppViewModel())
 }

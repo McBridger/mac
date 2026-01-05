@@ -18,8 +18,12 @@ struct SettingsView: View {
                 }
         }
         .frame(width: 520)
-        .onAppear { NSApp.setActivationPolicy(.regular) }
-        .onDisappear { NSApp.setActivationPolicy(.accessory) }
+        .onAppear {
+            NSApp.elevate()
+        }
+        .onDisappear { 
+            NSApp.lower() 
+        }
     }
 }
 

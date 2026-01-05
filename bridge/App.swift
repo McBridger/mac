@@ -1,10 +1,8 @@
 import SwiftUI
 import Factory
 
-@main
 struct bridgeApp: App {
     @StateObject private var viewModel = AppViewModel()
-    @Environment(\.openWindow) private var openWindow
     @Environment(\.openSettings) private var openSettings   
     
     init() {
@@ -13,43 +11,29 @@ struct bridgeApp: App {
     
     var body: some Scene {
         MenuBarExtra {
-            Group {
-                if viewModel.state == .idle || viewModel.state == .encrypting {
-                    Button("Complete Setup...") {
-                        showSetup()
-                    }
-                    Divider()
-                    Button("Quit") { NSApplication.shared.terminate(nil) }
-                } else {
-                    MenuBarContentView()
-                        .environmentObject(viewModel)
-                }
+            MenuBarView(viewModel: viewModel) {
+                NSApp.elevate()
+                openSettings()
             }
         } label: {
             Image("MenuBarIcon")
                 .background(
                     Color.clear
-                        .onAppear {
-                            if viewModel.state == .idle {
-                                showSetup()
-                            }
-                        }
-                        .onChange(of: viewModel.state) { oldValue, newValue in
-                            if newValue == .idle {
-                                showSetup()
-                            }
-                        }
+                        .onAppear { handleStateChange(viewModel.state) }
+                        .onChange(of: viewModel.state) { _, newValue in handleStateChange(newValue) }
                 )
         }
+        .menuBarExtraStyle(.window)
 
         Settings {
             SettingsView(viewModel: viewModel)
         }
     }
     
-    private func showSetup() {
-        NSApp.setActivationPolicy(.regular)
-        NSApp.activate(ignoringOtherApps: true)
-        openSettings()
+    private func handleStateChange(_ state: BrokerState) {
+        if state == .idle {
+            NSApp.elevate()
+            openSettings()
+        }
     }
 }
