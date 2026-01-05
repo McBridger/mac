@@ -1,22 +1,21 @@
-# McBridge for Mac 🍏
+# McBridger for Mac 🍏
 
 [![Platform: macOS](https://img.shields.io/badge/Platform-macOS-lightgrey.svg)](https://apple.com/macos)
 [![Swift: 6.0](https://img.shields.io/badge/Swift-6.0-orange.svg)](https://swift.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Native macOS application for secure, cloud-free clipboard synchronization.**
+**Native macOS application for McBridger: delivering seamless clipboard synchronization where it was never intended.**
 
-McBridge for Mac acts as a BLE (Bluetooth Low Energy) Peripheral, creating a secure bridge to your Android device. It monitors your clipboard in real-time and ensures your data moves seamlessly and securely between devices without ever touching the internet.
+McBridger for Mac creates a high-speed "invisible bridge" to your Android device. It monitors your clipboard in real-time and ensures your data moves fluidly between platforms, providing the missing link in your cross-platform workflow.
 
 ## ✨ Features
-- **Background Sync:** Runs as a lightweight menu bar utility.
+- **Background Sync:** Lightweight menu bar utility.
 - **Real-time Monitoring:** Instant synchronization of text data.
-- **Zero-Config Security:** Encrypted by default (AES-GCM).
-- **Infinite Loop Protection:** Smart logic to prevent "clipboard feedback" loops.
+- **Seamless Integration:** Built to feel like a native part of the system.
+- **Infinite Loop Protection:** Smart logic to prevent clipboard feedback.
 
 ## 🏗 Architecture
-The app is built with modern Apple technologies:
-- **SwiftUI:** For a lightweight and reactive Menu Bar interface.
+- **SwiftUI:** Modern, reactive Menu Bar interface.
 - **CoreBluetooth:** Handles the heavy lifting of BLE advertising and data transfer.
 - **Combine:** Manages asynchronous data flows from the clipboard and Bluetooth events.
 
