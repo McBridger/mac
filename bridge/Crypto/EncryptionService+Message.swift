@@ -1,11 +1,11 @@
-import Foundation
 import CryptoKit
+import Foundation
 import OSLog
 
 private let ENCRYPTION_DOMAIN = "McBridge_Encryption_Domain"
 
 extension EncryptionService {
-    private static let logger = Logger(subsystem: "com.mcbridger.Encryption", category: "MessageCrypto")
+    private static let logger = Logger(subsystem: "com.mcbridger.Crypto", category: "Message")
 
     /**
      * Encrypts BridgerMessage for secure transfer
@@ -23,11 +23,11 @@ extension EncryptionService {
         guard let key = self.derive(info: ENCRYPTION_DOMAIN, count: 32) else {
             throw BridgerMessageError.decryptionFailed
         }
-        
+
         guard let decryptedData = self.decrypt(data, key: key) else {
             throw BridgerMessageError.decryptionFailed
         }
-        
+
         return try BridgerMessage.fromData(decryptedData, address: address)
     }
 }

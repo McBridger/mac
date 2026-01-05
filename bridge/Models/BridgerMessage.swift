@@ -19,15 +19,18 @@ public struct BridgerMessage: Codable, Sendable {
     public let address: String?
     public let id: UUID
     public let timestamp: Date
-    
-    public init(type: MessageType, value: String, address: String? = nil, id: UUID = UUID(), timestamp: Date = Date()) {
+
+    public init(
+        type: MessageType, value: String, address: String? = nil, id: UUID = UUID(),
+        timestamp: Date = Date()
+    ) {
         self.type = type
         self.value = value
         self.address = address
         self.id = id
         self.timestamp = timestamp
     }
-    
+
     /// Converts message to raw JSON data using TransferMessage DTO
     func toData() -> Data? {
         let transferMessage = TransferMessage(
@@ -38,26 +41,27 @@ public struct BridgerMessage: Codable, Sendable {
         do {
             return try JSONEncoder().encode(transferMessage)
         } catch {
-            Logger.coreModels.error("Failed to encode BridgerMessage: \(error.localizedDescription)")
+            Logger.coreModels.error(
+                "Failed to encode BridgerMessage: \(error.localizedDescription)")
             return nil
         }
     }
-    
+
     /// Creates a BridgerMessage from raw JSON data
     static func fromData(_ data: Data, address: String? = nil) throws -> BridgerMessage {
         let decoder = JSONDecoder()
         let transferMessage = try decoder.decode(TransferMessage.self, from: data)
-        
+
         guard let messageType = MessageType(rawValue: transferMessage.t) else {
             throw BridgerMessageError.unknownMessageType
         }
-        
+
         // Replay Protection Check (Basic)
         let now = Date().timeIntervalSince1970
         if abs(now - transferMessage.ts) > 60 {
             throw BridgerMessageError.expiredMessage
         }
-        
+
         return BridgerMessage(
             type: messageType,
             value: transferMessage.p,
@@ -71,7 +75,7 @@ public enum BridgerMessageError: Error, LocalizedError {
     case unknownMessageType
     case expiredMessage
     case decryptionFailed
-    
+
     public var errorDescription: String? {
         switch self {
         case .unknownMessageType:
@@ -85,6 +89,6 @@ public enum BridgerMessageError: Error, LocalizedError {
 }
 
 extension Logger {
-    private static let subsystem = "com.mcbridger.CoreModels"
-    static let coreModels = Logger(subsystem: subsystem, category: "CoreModels")
+    private static let subsystem = "com.mcbridger.Model"
+    static let coreModels = Logger(subsystem: subsystem, category: "Transfer")
 }

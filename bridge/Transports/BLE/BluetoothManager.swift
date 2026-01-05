@@ -1,46 +1,46 @@
-import Foundation
-import CoreBluetooth
-import SystemConfiguration
-import OSLog
 import Combine
+import CoreBluetooth
 import Factory
+import Foundation
+import OSLog
+import SystemConfiguration
 
 public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, BluetoothManaging {
-    private let queue = DispatchQueue(label: "com.mcbridge.bluetooth-background-queue")
+    private let queue = DispatchQueue(label: "com.mcbridger.bluetooth-background-queue")
     private var _peripheralManager: CBPeripheralManager?
     private let logger = Logger(subsystem: "com.mcbridger.Transport", category: "Bluetooth")
-    
+
     // MARK: - Internal Events
-    
+
     private enum ConnectionEvent {
         case connected(UUID)
         case introduced(UUID)
         case disconnected(UUID)
-        
+
         var id: UUID {
             switch self {
             case .connected(let id), .introduced(let id), .disconnected(let id): return id
             }
         }
-        
+
         var isConnected: Bool {
             if case .connected = self { return true }
             return false
         }
     }
-    
+
     private let connectionEvents = PassthroughSubject<ConnectionEvent, Never>()
     private enum WatchdogError: Error { case timeout }
 
     // MARK: - Public API
-    
+
     public let power = CurrentValueSubject<BluetoothPowerState, Never>(.poweredOff)
     public let connection = CurrentValueSubject<ConnectionState, Never>(.disconnected)
-    public let devices = CurrentValueSubject<[DeviceInfo], Never>( [])
+    public let devices = CurrentValueSubject<[DeviceInfo], Never>([])
     public let data = PassthroughSubject<(data: Data, from: String), Never>()
 
     // MARK: - Private State
-    
+
     private var advertiseUUID: CBUUID?
     private var serviceUUID: CBUUID?
     private var characteristicUUID: CBUUID?
@@ -60,7 +60,7 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, BluetoothM
     }
 
     // MARK: - Initialization
-    
+
     public override init() {
         super.init()
 
@@ -73,7 +73,10 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, BluetoothM
                     .filter { $0.id == id && !$0.isConnected }
                     .first()
                     .setFailureType(to: WatchdogError.self)
-                    .timeout(.seconds(self?.nameRequestTimeout ?? 5), scheduler: queue, customError: { .timeout })
+                    .timeout(
+                        .seconds(self?.nameRequestTimeout ?? 5), scheduler: queue,
+                        customError: { .timeout }
+                    )
                     .catch { [weak self] _ in
                         self?.handleDeviceTimeout(id)
                         return Empty<ConnectionEvent, Never>()
@@ -87,7 +90,7 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, BluetoothM
             .receive(on: queue)
             .sink { [weak self] data in
                 guard let self = self, self.power.value == .poweredOn else { return }
-                
+
                 let introducedCentrals = self.connections.values
                     .filter { $0.device.isIntroduced }
                     .map { $0.central }
@@ -96,13 +99,16 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, BluetoothM
                     self.logger.warning("⚠️ Cannot send: No 'introduced' devices connected.")
                     return
                 }
-                
+
                 if let char = self.textCharacteristic {
-                    let success = self.peripheralManager.updateValue(data, for: char, onSubscribedCentrals: introducedCentrals)
+                    let success = self.peripheralManager.updateValue(
+                        data, for: char, onSubscribedCentrals: introducedCentrals)
                     if success {
-                        self.logger.info("✅ Data successfully queued for \(introducedCentrals.count) device(s).")
+                        self.logger.info(
+                            "✅ Data successfully queued for \(introducedCentrals.count) device(s).")
                     } else {
-                        self.logger.error("❌ Transmit queue full. Message dropped by CoreBluetooth.")
+                        self.logger.error(
+                            "❌ Transmit queue full. Message dropped by CoreBluetooth.")
                     }
                 }
             }
@@ -112,13 +118,13 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, BluetoothM
     }
 
     // MARK: - Public API Methods
-    
+
     public func start(advertiseUUID: CBUUID, serviceUUID: CBUUID, characteristicUUID: CBUUID) {
         logger.info("BluetoothManager: Start requested with specific UUIDs.")
         self.advertiseUUID = advertiseUUID
         self.serviceUUID = serviceUUID
         self.characteristicUUID = characteristicUUID
-        _ = peripheralManager 
+        _ = peripheralManager
     }
 
     public func stop() {
@@ -143,7 +149,8 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, BluetoothM
     // MARK: - CBPeripheralManagerDelegate
 
     public func peripheralManagerDidUpdateState(_ peripheral: CBPeripheralManager) {
-        let newState: BluetoothPowerState = (peripheral.state == .poweredOn) ? .poweredOn : .poweredOff
+        let newState: BluetoothPowerState =
+            (peripheral.state == .poweredOn) ? .poweredOn : .poweredOff
         if self.power.value == newState { return }
         self.power.send(newState)
         logger.info("Bluetooth state changed: \(newState.rawValue)")
@@ -154,8 +161,10 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, BluetoothM
             stop()
         }
     }
-    
-    public func peripheralManager(_ peripheral: CBPeripheralManager, didAdd service: CBService, error: Error?) {
+
+    public func peripheralManager(
+        _ peripheral: CBPeripheralManager, didAdd service: CBService, error: Error?
+    ) {
         if let error = error {
             logger.error("❌ Error adding service: \(error.localizedDescription)")
             return
@@ -163,20 +172,26 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, BluetoothM
         logger.info("✅ Service added successfully. Starting advertising.")
         startAdvertising()
     }
-    
-    public func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didSubscribeTo characteristic: CBCharacteristic) {
+
+    public func peripheralManager(
+        _ peripheral: CBPeripheralManager, central: CBCentral,
+        didSubscribeTo characteristic: CBCharacteristic
+    ) {
         let id = central.identifier
         guard connections[id] == nil else { return }
-        
+
         connections[id] = (device: DeviceInfo(id: id, name: "Connecting..."), central: central)
         if connections.count == 1 { self.connection.send(.connected) }
-        
+
         logger.info("📱 Device connected: \(id.uuidString). Waiting for introduction.")
         connectionEvents.send(.connected(id))
         reportUpdatedDeviceList()
     }
-    
-    public func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didUnsubscribeFrom characteristic: CBCharacteristic) {
+
+    public func peripheralManager(
+        _ peripheral: CBPeripheralManager, central: CBCentral,
+        didUnsubscribeFrom characteristic: CBCharacteristic
+    ) {
         let id = central.identifier
         if let conn = connections.removeValue(forKey: id) {
             logger.info("📱 Device \(conn.device.name) (\(id.uuidString)) has disconnected.")
@@ -185,48 +200,51 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, BluetoothM
             reportUpdatedDeviceList()
         }
     }
-    
-    public func peripheralManager(_ peripheral: CBPeripheralManager, didReceiveWrite requests: [CBATTRequest]) {
+
+    public func peripheralManager(
+        _ peripheral: CBPeripheralManager, didReceiveWrite requests: [CBATTRequest]
+    ) {
         guard let request = requests.first, let value = request.value else { return }
         let id = request.central.identifier
-        
+
         logger.debug("⬅️ Received raw data (\(value.count) bytes) from \(id.uuidString)")
         self.data.send((data: value, from: id.uuidString))
         peripheral.respond(to: request, withResult: .success)
     }
-    
+
     // MARK: - Internal Helpers
-    
+
     private func setupService() {
         guard let sUUID = serviceUUID, let cUUID = characteristicUUID else {
             logger.error("❌ Cannot setup service: UUIDs missing.")
             return
         }
-        
+
         logger.info("Setting up service: \(sUUID.uuidString)")
         let service = CBMutableService(type: sUUID, primary: true)
         self.textCharacteristic = CBMutableCharacteristic(
-            type: cUUID, properties: [.read, .write, .notify], value: nil, permissions: [.readable, .writeable]
+            type: cUUID, properties: [.read, .write, .notify], value: nil,
+            permissions: [.readable, .writeable]
         )
         service.characteristics = [self.textCharacteristic!]
         peripheralManager.add(service)
     }
-    
+
     private func startAdvertising() {
         guard self.connection.value != .advertising, let aUUID = advertiseUUID else { return }
-        
+
         logger.info("Starting advertising with UUID: \(aUUID.uuidString)")
         peripheralManager.startAdvertising([CBAdvertisementDataServiceUUIDsKey: [aUUID]])
         self.connection.send(.advertising)
     }
-    
+
     public func markDeviceAsIntroduced(id: UUID, name: String) {
         queue.async {
             guard var conn = self.connections[id] else { return }
             conn.device.name = name
             conn.device.isIntroduced = true
             self.connections[id] = conn
-            
+
             self.logger.info("🤝 Device \(id.uuidString) introduced as: \(name)")
             self.connectionEvents.send(.introduced(id))
             self.reportUpdatedDeviceList()
@@ -235,7 +253,8 @@ public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, BluetoothM
 
     private func handleDeviceTimeout(_ id: UUID) {
         if let conn = connections[id], !conn.device.isIntroduced {
-            logger.warning("⏳ Device \(id.uuidString) timed out waiting for introduction. Removing.")
+            logger.warning(
+                "⏳ Device \(id.uuidString) timed out waiting for introduction. Removing.")
             connections.removeValue(forKey: id)
             if connections.isEmpty { self.connection.send(.advertising) }
             reportUpdatedDeviceList()

@@ -1,14 +1,15 @@
-import OSLog
-import CryptoKit
 import Combine
-import Foundation
 import CommonCrypto
+import CryptoKit
 import Factory
+import Foundation
+import OSLog
 
 public final class EncryptionService: EncryptionServing {
-    private let queue = DispatchQueue(label: "com.mcbridger.encryption-lock", attributes: .concurrent)
-    private let logger = Logger(subsystem: "com.mcbridger.SecurityService", category: "Encryption")
-    
+    private let queue = DispatchQueue(
+        label: "com.mcbridger.encryption-lock", attributes: .concurrent)
+    private let logger = Logger(subsystem: "com.mcbridger.Crypto", category: "Encryption")
+
     @Injected(\.appConfig) private var config: AppConfiguring
     @Injected(\.keychainManager) private var keychain: KeychainManaging
 
@@ -17,12 +18,12 @@ public final class EncryptionService: EncryptionServing {
 
     public let isReady = CurrentValueSubject<Bool, Never>(false)
     public let mnemonic = CurrentValueSubject<String, Never>("")
-    
+
     public init() {
         let keyData = keychain.load(key: KeychainKey.masterKey)
         let mnemonicData = keychain.load(key: KeychainKey.mnemonic)
 
-        if let keyData = keyData { self._masterKey = SymmetricKey(data: keyData)}
+        if let keyData = keyData { self._masterKey = SymmetricKey(data: keyData) }
         if let data = mnemonicData { self.mnemonic.send(String(data: data, encoding: .utf8) ?? "") }
 
         if (self.mnemonic.value != "") && (self._masterKey != nil) {
@@ -32,7 +33,7 @@ public final class EncryptionService: EncryptionServing {
             logger.info("No cached Master Key found. Manual setup required.")
         }
     }
-    
+
     /// Heavy lifting: derives key from mnemonic and persists both for future instant starts.
     public func setup(with passphrase: String) {
         let salt = self._salt
@@ -47,7 +48,8 @@ public final class EncryptionService: EncryptionServing {
                 self._masterKey = derivedKey
                 self.mnemonic.send(passphrase)
                 self.keychain.save(passphrase.data(using: .utf8)!, for: KeychainKey.mnemonic)
-                self.keychain.save(derivedKey.withUnsafeBytes { Data($0) }, for: KeychainKey.masterKey)
+                self.keychain.save(
+                    derivedKey.withUnsafeBytes { Data($0) }, for: KeychainKey.masterKey)
                 self.isReady.send(true)
                 self.logger.info("Master Key derived and cached in Keychain.")
             }
@@ -56,7 +58,7 @@ public final class EncryptionService: EncryptionServing {
 
     private func calculateKey(passphrase: String, salt: Data) -> SymmetricKey? {
         guard let passwordData = passphrase.data(using: .utf8) else { return nil }
-        
+
         var derivedBytes = [UInt8](repeating: 0, count: 32)
         let status = CCKeyDerivationPBKDF(
             CCPBKDFAlgorithm(kCCPBKDF2),
