@@ -2,16 +2,11 @@ import Foundation
 import Security
 import OSLog
 
-internal enum KeychainHelper {
-    private static let logger = Logger(subsystem: "com.mcbridger.Keychain", category: "Helper")
-    private static let service = "com.mcbridger.sync-phrase"
+internal final class KeychainManager: KeychainManaging {
+    private let logger = Logger(subsystem: "com.mcbridger.Keychain", category: "Manager")
+    private let service = "com.mcbridger.sync-phrase"
 
-    enum Key: String {
-        case mnemonic = "primary-mnemonic"
-        case masterKey = "master-key"
-    }
-
-    private static func query(for key: Key) -> [String: Any] {
+    private func query(for key: KeychainKey) -> [String: Any] {
         [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -19,7 +14,7 @@ internal enum KeychainHelper {
         ]
     }
 
-    static func save(_ value: Data, for key: Key) {
+    func save(_ value: Data, for key: KeychainKey) {
         let base = query(for: key)
         let status = SecItemCopyMatching(base as CFDictionary, nil)
         
@@ -37,7 +32,7 @@ internal enum KeychainHelper {
         }
     }
 
-    static func load(key: Key) -> Data? {
+    func load(key: KeychainKey) -> Data? {
         var q = query(for: key)
         q[kSecReturnData as String] = true
         q[kSecMatchLimit as String] = kSecMatchLimitOne
@@ -48,11 +43,11 @@ internal enum KeychainHelper {
         return (status == errSecSuccess) ? (dataTypeRef as? Data) : nil
     }
 
-    static func delete(key: Key) {
+    func delete(key: KeychainKey) {
         SecItemDelete(query(for: key) as CFDictionary)
     }
     
-    static func deleteAll() {
+    func deleteAll() {
         delete(key: .mnemonic)
         delete(key: .masterKey)
     }

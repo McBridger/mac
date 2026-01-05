@@ -15,10 +15,10 @@ public final class AppLogic {
     public let clipboardHistory = CurrentValueSubject<[String], Never>([])
     
     // MARK: - Services
-    @Injected(\.clipboardManager) private var clipboardService: ClipboardManager
-    @Injected(\.encryptionService) private var encryptionService
+    @Injected(\.clipboardManager) private var clipboardService: ClipboardManaging
+    @Injected(\.encryptionService) private var encryptionService: EncryptionServing
     @Injected(\.notificationService) private var notificationService
-    @Injected(\.bluetoothManager) private var bluetoothService: BluetoothManager
+    @Injected(\.bluetoothManager) private var bluetoothService: BluetoothManaging
     
     private var cancellables = Set<AnyCancellable>()
 

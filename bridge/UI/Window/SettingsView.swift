@@ -26,7 +26,15 @@ struct SettingsView: View {
 // MARK: - Security Tab Orchestrator
 struct SecurityView: View {
     @ObservedObject var viewModel: AppViewModel
-    @State private var words: [String] = Array(repeating: "", count: AppConfig.mnemonicLength)
+    @State private var words: [String]
+    private let mnemonicLength: Int
+
+    init(viewModel: AppViewModel) {
+        self.viewModel = viewModel
+        let length = Container.shared.appConfig().mnemonicLength
+        self.mnemonicLength = length
+        _words = State(initialValue: Array(repeating: "", count: length))
+    }
 
     var body: some View {
         ScrollView {
@@ -34,7 +42,7 @@ struct SecurityView: View {
                 if viewModel.state == .idle || viewModel.state == .encrypting {
                     SetupSectionView(words: $words) { mnemonic in
                         viewModel.setup(mnemonic: mnemonic)
-                        words = Array(repeating: "", count: AppConfig.mnemonicLength)
+                        words = Array(repeating: "", count: mnemonicLength)
                     }
                 } else if let mnemonic = viewModel.mnemonic {
                     SecurityConfigView(mnemonic: mnemonic) {

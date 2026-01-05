@@ -6,7 +6,7 @@ import OSLog
 
 private let logger = Logger(subsystem: "com.yourcompany.ClipboardService", category: "ClipboardManager")
 
-public class ClipboardManager {
+public class ClipboardManager: ClipboardManaging {
     // MARK: - Public Publisher
 
     public let update = PassthroughSubject<BridgerMessage, Never>()

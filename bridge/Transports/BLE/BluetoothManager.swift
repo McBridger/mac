@@ -5,7 +5,7 @@ import OSLog
 import Combine
 import Factory
 
-public class BluetoothManager: NSObject, CBPeripheralManagerDelegate {
+public class BluetoothManager: NSObject, CBPeripheralManagerDelegate, BluetoothManaging {
     private let queue = DispatchQueue(label: "com.mcbridge.bluetooth-background-queue")
     private var _peripheralManager: CBPeripheralManager?
     private let logger = Logger(subsystem: "com.mcbridger.Transport", category: "Bluetooth")

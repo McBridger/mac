@@ -20,6 +20,7 @@ struct MnemonicForm: View {
                         TextField("", text: $words[index])
                             .textFieldStyle(.roundedBorder)
                             .focused($focusedField, equals: index)
+                            .accessibilityIdentifier("mnemonic_word_\(index)")
                             .onSubmit {
                                 focusedField = (index + 1) < wordCount ? (index + 1) : nil
                             }

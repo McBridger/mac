@@ -3,20 +3,24 @@ import CryptoKit
 import Combine
 import Foundation
 import CommonCrypto
+import Factory
 
-public final class EncryptionService {
+public final class EncryptionService: EncryptionServing {
     private let queue = DispatchQueue(label: "com.mcbridger.encryption-lock", attributes: .concurrent)
     private let logger = Logger(subsystem: "com.mcbridger.SecurityService", category: "Encryption")
-    private let _salt: Data = Data(hexString: AppConfig.encryptionSalt)!
-   
-    private var _masterKey: SymmetricKey?
     
+    @Injected(\.appConfig) private var config: AppConfiguring
+    @Injected(\.keychainManager) private var keychain: KeychainManaging
+
+    private var _salt: Data { Data(hexString: config.encryptionSalt)! }
+    private var _masterKey: SymmetricKey?
+
     public let isReady = CurrentValueSubject<Bool, Never>(false)
     public let mnemonic = CurrentValueSubject<String, Never>("")
     
     public init() {
-        let keyData = KeychainHelper.load(key: .masterKey)
-        let mnemonicData = KeychainHelper.load(key: .mnemonic)
+        let keyData = keychain.load(key: KeychainKey.masterKey)
+        let mnemonicData = keychain.load(key: KeychainKey.mnemonic)
 
         if let keyData = keyData { self._masterKey = SymmetricKey(data: keyData)}
         if let data = mnemonicData { self.mnemonic.send(String(data: data, encoding: .utf8) ?? "") }
@@ -42,8 +46,8 @@ public final class EncryptionService {
             self.queue.async(flags: .barrier) {
                 self._masterKey = derivedKey
                 self.mnemonic.send(passphrase)
-                KeychainHelper.save(passphrase.data(using: .utf8)!, for: .mnemonic)
-                KeychainHelper.save(derivedKey.withUnsafeBytes { Data($0) }, for: .masterKey)
+                self.keychain.save(passphrase.data(using: .utf8)!, for: KeychainKey.mnemonic)
+                self.keychain.save(derivedKey.withUnsafeBytes { Data($0) }, for: KeychainKey.masterKey)
                 self.isReady.send(true)
                 self.logger.info("Master Key derived and cached in Keychain.")
             }
@@ -68,7 +72,7 @@ public final class EncryptionService {
 
     public func reset() {
         queue.async(flags: .barrier) {
-            KeychainHelper.deleteAll()
+            self.keychain.deleteAll()
             self._masterKey = nil
             self.mnemonic.send("")
             self.isReady.send(false)
