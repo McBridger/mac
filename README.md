@@ -1,26 +1,29 @@
-## Project summary
-This is a macOS menu bar application written in SwiftUI. Its purpose is to synchronize the clipboard between the Mac and an Android device using Bluetooth Low Energy (BLE).
+# McBridger for Mac 🍏
 
-__Core Functionality:__
+[![Platform: macOS](https://img.shields.io/badge/Platform-macOS-lightgrey.svg)](https://apple.com/macos)
+[![Swift: 6.0](https://img.shields.io/badge/Swift-6.0-orange.svg)](https://swift.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-1. __Application Type__: It runs as a background utility, accessible from an icon in the macOS menu bar.
+**Native macOS application for McBridger: delivering seamless clipboard synchronization where it was never intended.**
 
-2. __User Interface (`MenuBarContentView.swift`)__: The UI is minimal. It shows the application's name, the status of the Mac's Bluetooth (on/off), and a button to quit the application.
+McBridger for Mac creates a high-speed "invisible bridge" to your Android device. It monitors your clipboard in real-time and ensures your data moves fluidly between platforms, providing the missing link in your cross-platform workflow.
 
-3. __Bluetooth Logic (`BLEPeripheralManager.swift`)__: This is the central component.
+## ✨ Features
+- **Background Sync:** Lightweight menu bar utility.
+- **Real-time Monitoring:** Instant synchronization of text data.
+- **Seamless Integration:** Built to feel like a native part of the system.
+- **Infinite Loop Protection:** Smart logic to prevent clipboard feedback.
 
-   - The Mac acts as a __BLE Peripheral__, advertising a specific service to which an Android device (the Central) can connect.
+## 🏗 Architecture
+- **SwiftUI:** Modern, reactive Menu Bar interface.
+- **CoreBluetooth:** Handles the heavy lifting of BLE advertising and data transfer.
+- **Combine:** Manages asynchronous data flows from the clipboard and Bluetooth events.
 
-   - It handles __two-way data synchronization__:
+## 🚀 Getting Started
+1. Clone the repository.
+2. Open `bridge.xcodeproj` in Xcode.
+3. Build and run.
+4. The McBridge icon will appear in your Menu Bar.
 
-     - __Mac to Android__: It constantly monitors the Mac's clipboard. When the user copies new text, it sends that text to the connected Android device.
-     - __Android to Mac__: When it receives text from the Android device, it updates the Mac's clipboard with that text.
-
-   - It includes logic to prevent infinite sync loops (e.g., sending the same text back and forth).
-
-## Architecture
-
-- The application follows SwiftUI structure.
-- The `bridgeApp.swift` file serves as the entry point, setting up the menu bar icon and initializing the core `BLEPeripheralManager`.
-- The `BLEPeripheralManager` is an `ObservableObject`, which allows the SwiftUI views to automatically update when the Bluetooth status or other properties change.
-
+---
+[Security Protocol](https://github.com/McBridger/mobile/blob/main/ENCRYPTION.md)
