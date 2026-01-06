@@ -69,7 +69,7 @@ jobs:
       - name: Create xcconfig file
         if: steps.versioning.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
         run: |
-          echo "ENCRYPTION_SALT = ${{ secrets.BLE_ENCRYPTION_SALT }}" > Shared.xcconfig
+          echo "ENCRYPTION_SALT = ${{ secrets.ENCRYPTION_SALT }}" > Shared.xcconfig
 
       - name: Cache Notarized App
         if: steps.versioning.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
