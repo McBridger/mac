@@ -88,8 +88,7 @@ jobs:
             -project bridge.xcodeproj \
             -scheme bridge \
             -archivePath ./build/bridge.xcarchive \
-            DEVELOPMENT_TEAM="${{ secrets.APPLE_DEVELOPMENT_TEAM_ID }}" \
-            CODE_SIGN_IDENTITY="Developer ID Application"
+            DEVELOPMENT_TEAM="${{ secrets.APPLE_DEVELOPMENT_TEAM_ID }}"
 
       - name: Prepare ExportOptions.plist
         if: (steps.versioning.outputs.changed == 'true' || github.event_name == 'workflow_dispatch') && steps.cache-notarized-app.outputs.cache-hit != 'true'
