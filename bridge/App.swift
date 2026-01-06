@@ -1,31 +1,39 @@
 import SwiftUI
-import UserNotifications
-import BluetoothService
-import ClipboardService
-import CoreModels
+import Factory
 
-@main
 struct bridgeApp: App {
-    @StateObject private var logic: AppLogic
+    @StateObject private var viewModel = AppViewModel()
+    @Environment(\.openSettings) private var openSettings   
     
     init() {
-        let logic = AppLogic()
-        _logic = StateObject(wrappedValue: logic)
-        
-        Task { await logic.setup() }
+        Container.shared.appLogic().bootstrap()
     }
     
     var body: some Scene {
         MenuBarExtra {
-            Group {
-                if logic.model != nil {
-                    MenuBarContentView().environmentObject(logic.model!)
-                } else {
-                    ProgressView("Loading...")
-                }
+            MenuBarView(viewModel: viewModel) {
+                NSApp.elevate()
+                openSettings()
             }
         } label: {
             Image("MenuBarIcon")
+                .background(
+                    Color.clear
+                        .onAppear { handleStateChange(viewModel.state) }
+                        .onChange(of: viewModel.state) { _, newValue in handleStateChange(newValue) }
+                )
+        }
+        .menuBarExtraStyle(.window)
+
+        Settings {
+            SettingsView(viewModel: viewModel)
+        }
+    }
+    
+    private func handleStateChange(_ state: BrokerState) {
+        if state == .idle {
+            NSApp.elevate()
+            openSettings()
         }
     }
 }

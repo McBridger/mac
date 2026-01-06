@@ -1,66 +1,67 @@
+import Factory
 import Foundation
 import Combine
-import CoreModels
-import BluetoothService
-import ClipboardService
+import AppKit
 
 @MainActor
 class AppViewModel: ObservableObject {
-    // MARK: - Published Properties for UI
+    // MARK: - Published Properties
+    @Published var state: BrokerState = .idle
     @Published var bluetoothPowerState: BluetoothPowerState = .poweredOff
     @Published var connectionState: ConnectionState = .disconnected
     @Published var connectedDevices: [DeviceInfo] = []
     @Published var clipboardHistory: [String] = []
-
-    // MARK: - Services
-    private let bluetoothService: BluetoothManager
-    private let clipboardService: ClipboardManager
-
-    private var cancellables = Set<AnyCancellable>()
-
-    init(bluetoothService: BluetoothManager, clipboardService: ClipboardManager) {
-        self.bluetoothService = bluetoothService
-        self.clipboardService = clipboardService
+    @Published var mnemonic: String? = nil
+    
+    @Injected(\.appLogic) private var logic
+    @Injected(\.encryptionService) private var encryption
+    @Injected(\.bluetoothManager) private var bluetooth
+    
+    public init() {
         setupBindings()
     }
-
+    
+    func setup(mnemonic: String) {
+        logic.setup(mnemonic: mnemonic)
+    }
+    
+    func resetSecurity() {
+        logic.reset()
+    }
+    
     private func setupBindings() {
-        // MARK: - Bluetooth State Bindings
-        bluetoothService.$power
-            .receive(on: DispatchQueue.main)
-            .assign(to: \.bluetoothPowerState, on: self)
-            .store(in: &cancellables)
-
-        bluetoothService.$connection
-            .receive(on: DispatchQueue.main)
-            .assign(to: \.connectionState, on: self)
-            .store(in: &cancellables)
-            
-        bluetoothService.$devices
-            .receive(on: DispatchQueue.main)
-            .assign(to: \.connectedDevices, on: self)
-            .store(in: &cancellables)
-        
-        // MARK: - Flow Bindings
-        
-        // Flow 1: Local clipboard changes -> Send over Bluetooth
-        clipboardService.$update
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] message in
-                self?.bluetoothService.send(message: message)
-                self?.clipboardHistory.append(message.value)
-            }
-            .store(in: &cancellables)
-
-        // Flow 2: Remote messages -> Apply to local clipboard
-        bluetoothService.$message
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] message in
-                if message.type == .CLIPBOARD {
-                    self?.clipboardService.setText(message.value)
+        // 1. Unified Status (The Brain)
+        Publishers.CombineLatest3(logic.state, bluetooth.power, bluetooth.connection)
+            .receive(on: RunLoop.main)
+            .map { logicState, power, connection -> BrokerState in
+                if logicState == .idle || logicState == .encrypting {
+                    return logicState
+                }
+                
+                if power == .poweredOff {
+                    return .bluetoothOff
+                }
+                
+                switch connection {
+                    case .advertising: return .advertising
+                    case .connected: return .connected
+                    case .disconnected: return .ready
                 }
             }
-            .store(in: &cancellables)
+            .assign(to: &$state)
+
+        // 2. Direct mirrors from BluetoothManager
+        bluetooth.power.receive(on: RunLoop.main).assign(to: &$bluetoothPowerState)
+        bluetooth.connection.receive(on: RunLoop.main).assign(to: &$connectionState)
+        bluetooth.devices.receive(on: RunLoop.main).assign(to: &$connectedDevices)
+        
+        // 3. Logic mirrors
+        logic.clipboardHistory.receive(on: RunLoop.main).assign(to: &$clipboardHistory)
+
+        // 4. Mnemonic state
+        encryption.mnemonic
+            .map { $0.isEmpty ? nil : $0 }
+            .receive(on: RunLoop.main)
+            .assign(to: &$mnemonic)
     }
 }
-
