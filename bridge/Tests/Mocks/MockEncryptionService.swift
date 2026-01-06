@@ -1,3 +1,4 @@
+#if DEBUG
 import Foundation
 import Combine
 
@@ -40,3 +41,4 @@ class MockEncryptionService: EncryptionServing {
         return try BridgerMessage.fromData(data, address: address)
     }
 }
+#endif

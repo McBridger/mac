@@ -1,3 +1,4 @@
+#if DEBUG
 import Foundation
 
 internal final class MockKeychainManager: KeychainManaging {
@@ -19,3 +20,4 @@ internal final class MockKeychainManager: KeychainManaging {
         storage.removeAll()
     }
 }
+#endif

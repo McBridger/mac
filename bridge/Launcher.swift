@@ -1,4 +1,6 @@
 import SwiftUI
+import Factory
+import Foundation
 
 @main
 struct Launcher {
@@ -6,6 +8,9 @@ struct Launcher {
         if NSClassFromString("XCTestCase") != nil {
             TestApp.main()
         } else {
+            #if DEBUG
+            TestContainer.mock(shouldMock: ProcessInfo.processInfo.arguments.contains("--uitesting"))
+            #endif
             bridgeApp.main()
         }
     }

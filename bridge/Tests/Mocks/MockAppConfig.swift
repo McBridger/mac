@@ -1,3 +1,4 @@
+#if DEBUG
 import Foundation
 
 public final class MockAppConfig: AppConfiguring {
@@ -18,3 +19,4 @@ public final class MockAppConfig: AppConfiguring {
 
     public init() {}
 }
+#endif

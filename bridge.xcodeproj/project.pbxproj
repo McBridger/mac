@@ -44,6 +44,15 @@
 			);
 			target = 847C33C52E24017600B265E0 /* bridge */;
 		};
+		8AB612A72F0C578200B48866 /* Exceptions for "bridge" folder in "bridgeUITests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Models/TransferMessage.swift,
+				Tests/TestUtils.swift,
+				"Utils/Data+Hex.swift",
+			);
+			target = 847C33E02E24017700B265E0 /* bridgeUITests */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -51,6 +60,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				8A9BCD942EA964E9004C413A /* Exceptions for "bridge" folder in "bridge" target */,
+				8AB612A72F0C578200B48866 /* Exceptions for "bridge" folder in "bridgeUITests" target */,
 			);
 			path = bridge;
 			sourceTree = "<group>";

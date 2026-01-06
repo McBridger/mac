@@ -6,13 +6,6 @@ public enum MessageType: Int, Codable, Sendable {
     case DEVICE_NAME = 1
 }
 
-/// Internal DTO for over-the-air transmission
-struct TransferMessage: Codable {
-    let t: Int      // type
-    let p: String   // payload
-    let ts: Double  // timestamp
-}
-
 public struct BridgerMessage: Codable, Sendable {
     public let type: MessageType
     public let value: String
@@ -32,7 +25,7 @@ public struct BridgerMessage: Codable, Sendable {
     }
 
     /// Converts message to raw JSON data using TransferMessage DTO
-    func toData() -> Data? {
+    public func toData() -> Data? {
         let transferMessage = TransferMessage(
             t: self.type.rawValue,
             p: self.value,
@@ -48,7 +41,7 @@ public struct BridgerMessage: Codable, Sendable {
     }
 
     /// Creates a BridgerMessage from raw JSON data
-    static func fromData(_ data: Data, address: String? = nil) throws -> BridgerMessage {
+    public static func fromData(_ data: Data, address: String? = nil) throws -> BridgerMessage {
         let decoder = JSONDecoder()
         let transferMessage = try decoder.decode(TransferMessage.self, from: data)
 
