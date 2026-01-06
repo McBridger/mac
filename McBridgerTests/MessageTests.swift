@@ -1,7 +1,7 @@
 import XCTest
-@testable import bridge
+@testable import McBridgerDev
 
-final class bridgeMessageTests: XCTestCase {
+final class MessageTests: XCTestCase {
 
     func testMessageSerialization() throws {
         let originalValue = "Hello, Bridger!"

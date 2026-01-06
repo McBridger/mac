@@ -30,49 +30,49 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		847C33C62E24017600B265E0 /* bridge.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = bridge.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		847C33D72E24017700B265E0 /* bridgeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = bridgeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		847C33E12E24017700B265E0 /* bridgeUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = bridgeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		847C33C62E24017600B265E0 /* McBridgerDev.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = McBridgerDev.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		847C33D72E24017700B265E0 /* McBridgerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = McBridgerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		847C33E12E24017700B265E0 /* McBridgerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = McBridgerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8A9BCD8F2EA81445004C413A /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Shared.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		8A9BCD942EA964E9004C413A /* Exceptions for "bridge" folder in "bridge" target */ = {
+		8A9BCD942EA964E9004C413A /* Exceptions for "McBridger" folder in "McBridger" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = 847C33C52E24017600B265E0 /* bridge */;
+			target = 847C33C52E24017600B265E0 /* McBridger */;
 		};
-		8AB612A72F0C578200B48866 /* Exceptions for "bridge" folder in "bridgeUITests" target */ = {
+		8AB612A72F0C578200B48866 /* Exceptions for "McBridger" folder in "McBridgerUITests" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Models/TransferMessage.swift,
 				Tests/TestUtils.swift,
 				"Utils/Data+Hex.swift",
 			);
-			target = 847C33E02E24017700B265E0 /* bridgeUITests */;
+			target = 847C33E02E24017700B265E0 /* McBridgerUITests */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		847C33C82E24017600B265E0 /* bridge */ = {
+		847C33C82E24017600B265E0 /* McBridger */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				8A9BCD942EA964E9004C413A /* Exceptions for "bridge" folder in "bridge" target */,
-				8AB612A72F0C578200B48866 /* Exceptions for "bridge" folder in "bridgeUITests" target */,
+				8A9BCD942EA964E9004C413A /* Exceptions for "McBridger" folder in "McBridger" target */,
+				8AB612A72F0C578200B48866 /* Exceptions for "McBridger" folder in "McBridgerUITests" target */,
 			);
-			path = bridge;
+			path = McBridger;
 			sourceTree = "<group>";
 		};
-		847C33DA2E24017700B265E0 /* bridgeTests */ = {
+		847C33DA2E24017700B265E0 /* McBridgerTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = bridgeTests;
+			path = McBridgerTests;
 			sourceTree = "<group>";
 		};
-		847C33E42E24017700B265E0 /* bridgeUITests */ = {
+		847C33E42E24017700B265E0 /* McBridgerUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = bridgeUITests;
+			path = McBridgerUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -107,9 +107,9 @@
 		847C33BD2E24017600B265E0 = {
 			isa = PBXGroup;
 			children = (
-				847C33C82E24017600B265E0 /* bridge */,
-				847C33DA2E24017700B265E0 /* bridgeTests */,
-				847C33E42E24017700B265E0 /* bridgeUITests */,
+				847C33C82E24017600B265E0 /* McBridger */,
+				847C33DA2E24017700B265E0 /* McBridgerTests */,
+				847C33E42E24017700B265E0 /* McBridgerUITests */,
 				847C33C72E24017600B265E0 /* Products */,
 				8A9BCD8F2EA81445004C413A /* Shared.xcconfig */,
 			);
@@ -118,9 +118,9 @@
 		847C33C72E24017600B265E0 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				847C33C62E24017600B265E0 /* bridge.app */,
-				847C33D72E24017700B265E0 /* bridgeTests.xctest */,
-				847C33E12E24017700B265E0 /* bridgeUITests.xctest */,
+				847C33C62E24017600B265E0 /* McBridgerDev.app */,
+				847C33D72E24017700B265E0 /* McBridgerTests.xctest */,
+				847C33E12E24017700B265E0 /* McBridgerUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -128,9 +128,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		847C33C52E24017600B265E0 /* bridge */ = {
+		847C33C52E24017600B265E0 /* McBridger */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 847C33EB2E24017700B265E0 /* Build configuration list for PBXNativeTarget "bridge" */;
+			buildConfigurationList = 847C33EB2E24017700B265E0 /* Build configuration list for PBXNativeTarget "McBridger" */;
 			buildPhases = (
 				847C33C22E24017600B265E0 /* Sources */,
 				847C33C32E24017600B265E0 /* Frameworks */,
@@ -141,19 +141,19 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				847C33C82E24017600B265E0 /* bridge */,
+				847C33C82E24017600B265E0 /* McBridger */,
 			);
-			name = bridge;
+			name = McBridger;
 			packageProductDependencies = (
 				8A8EEC2C2F0723FA007171EF /* Factory */,
 			);
 			productName = bridge;
-			productReference = 847C33C62E24017600B265E0 /* bridge.app */;
+			productReference = 847C33C62E24017600B265E0 /* McBridgerDev.app */;
 			productType = "com.apple.product-type.application";
 		};
-		847C33D62E24017700B265E0 /* bridgeTests */ = {
+		847C33D62E24017700B265E0 /* McBridgerTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 847C33EE2E24017700B265E0 /* Build configuration list for PBXNativeTarget "bridgeTests" */;
+			buildConfigurationList = 847C33EE2E24017700B265E0 /* Build configuration list for PBXNativeTarget "McBridgerTests" */;
 			buildPhases = (
 				847C33D32E24017700B265E0 /* Sources */,
 				847C33D42E24017700B265E0 /* Frameworks */,
@@ -165,19 +165,19 @@
 				847C33D92E24017700B265E0 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				847C33DA2E24017700B265E0 /* bridgeTests */,
+				847C33DA2E24017700B265E0 /* McBridgerTests */,
 			);
-			name = bridgeTests;
+			name = McBridgerTests;
 			packageProductDependencies = (
 				8A8EEC2E2F0723FA007171EF /* FactoryTesting */,
 			);
 			productName = bridgeTests;
-			productReference = 847C33D72E24017700B265E0 /* bridgeTests.xctest */;
+			productReference = 847C33D72E24017700B265E0 /* McBridgerTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		847C33E02E24017700B265E0 /* bridgeUITests */ = {
+		847C33E02E24017700B265E0 /* McBridgerUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 847C33F12E24017700B265E0 /* Build configuration list for PBXNativeTarget "bridgeUITests" */;
+			buildConfigurationList = 847C33F12E24017700B265E0 /* Build configuration list for PBXNativeTarget "McBridgerUITests" */;
 			buildPhases = (
 				847C33DD2E24017700B265E0 /* Sources */,
 				847C33DE2E24017700B265E0 /* Frameworks */,
@@ -189,13 +189,13 @@
 				847C33E32E24017700B265E0 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				847C33E42E24017700B265E0 /* bridgeUITests */,
+				847C33E42E24017700B265E0 /* McBridgerUITests */,
 			);
-			name = bridgeUITests;
+			name = McBridgerUITests;
 			packageProductDependencies = (
 			);
 			productName = bridgeUITests;
-			productReference = 847C33E12E24017700B265E0 /* bridgeUITests.xctest */;
+			productReference = 847C33E12E24017700B265E0 /* McBridgerUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
@@ -221,7 +221,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 847C33C12E24017600B265E0 /* Build configuration list for PBXProject "bridge" */;
+			buildConfigurationList = 847C33C12E24017600B265E0 /* Build configuration list for PBXProject "McBridger" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -238,9 +238,9 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				847C33C52E24017600B265E0 /* bridge */,
-				847C33D62E24017700B265E0 /* bridgeTests */,
-				847C33E02E24017700B265E0 /* bridgeUITests */,
+				847C33C52E24017600B265E0 /* McBridger */,
+				847C33D62E24017700B265E0 /* McBridgerTests */,
+				847C33E02E24017700B265E0 /* McBridgerUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -297,12 +297,12 @@
 /* Begin PBXTargetDependency section */
 		847C33D92E24017700B265E0 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 847C33C52E24017600B265E0 /* bridge */;
+			target = 847C33C52E24017600B265E0 /* McBridger */;
 			targetProxy = 847C33D82E24017700B265E0 /* PBXContainerItemProxy */;
 		};
 		847C33E32E24017700B265E0 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 847C33C52E24017600B265E0 /* bridge */;
+			target = 847C33C52E24017600B265E0 /* McBridger */;
 			targetProxy = 847C33E22E24017700B265E0 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -435,19 +435,19 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = bridge/bridge.entitlements;
+				CODE_SIGN_ENTITLEMENTS = McBridger/McBridger.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"bridge/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"McBridger/Preview Content\"";
 				DEVELOPMENT_TEAM = 7MZ7Y7JHLP;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = bridge/Info.plist;
+				INFOPLIST_FILE = McBridger/Info.plist;
 				INFOPLIST_KEY_LSUIElement = YES;
-				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Это приложение использует Bluetooth для обмена данными";
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "This app use Bluetooth BLE to establish secure connection";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -455,7 +455,7 @@
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = mc.bridger;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = McBridgerDev;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 			};
@@ -466,19 +466,19 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = bridge/bridge.entitlements;
+				CODE_SIGN_ENTITLEMENTS = McBridger/McBridger.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Developer ID Application";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"bridge/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"McBridger/Preview Content\"";
 				DEVELOPMENT_TEAM = 7MZ7Y7JHLP;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = bridge/Info.plist;
+				INFOPLIST_FILE = McBridger/Info.plist;
 				INFOPLIST_KEY_LSUIElement = YES;
-				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Это приложение использует Bluetooth для обмена данными";
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "This app use Bluetooth BLE to establish secure connection";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -486,7 +486,7 @@
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = mc.bridger;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = McBridger;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 			};
@@ -507,7 +507,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/bridge.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/bridge";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/McBridgerDev.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/McBridgerDev";
 			};
 			name = Debug;
 		};
@@ -526,7 +526,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/bridge.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/bridge";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/McBridgerDev.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/McBridgerDev";
 			};
 			name = Release;
 		};
@@ -542,7 +542,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TEST_TARGET_NAME = bridge;
+				TEST_TARGET_NAME = McBridger;
 			};
 			name = Debug;
 		};
@@ -558,14 +558,14 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TEST_TARGET_NAME = bridge;
+				TEST_TARGET_NAME = McBridger;
 			};
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		847C33C12E24017600B265E0 /* Build configuration list for PBXProject "bridge" */ = {
+		847C33C12E24017600B265E0 /* Build configuration list for PBXProject "McBridger" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				847C33E92E24017700B265E0 /* Debug */,
@@ -574,7 +574,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		847C33EB2E24017700B265E0 /* Build configuration list for PBXNativeTarget "bridge" */ = {
+		847C33EB2E24017700B265E0 /* Build configuration list for PBXNativeTarget "McBridger" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				847C33EC2E24017700B265E0 /* Debug */,
@@ -583,7 +583,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		847C33EE2E24017700B265E0 /* Build configuration list for PBXNativeTarget "bridgeTests" */ = {
+		847C33EE2E24017700B265E0 /* Build configuration list for PBXNativeTarget "McBridgerTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				847C33EF2E24017700B265E0 /* Debug */,
@@ -592,7 +592,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		847C33F12E24017700B265E0 /* Build configuration list for PBXNativeTarget "bridgeUITests" */ = {
+		847C33F12E24017700B265E0 /* Build configuration list for PBXNativeTarget "McBridgerUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				847C33F22E24017700B265E0 /* Debug */,

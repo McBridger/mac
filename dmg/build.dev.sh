@@ -9,7 +9,7 @@ else
 fi
 
 # App Build Settings
-export APP_SCHEME="bridge"
+export APP_SCHEME="McBridger"
 export APP_CONFIGURATION="Debug"
 export APP_NAME_PREFIX="McBridgerDev"
 

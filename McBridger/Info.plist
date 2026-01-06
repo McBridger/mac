@@ -4,9 +4,9 @@
 <dict>
 	<key>ENCRYPTION_SALT</key>
 	<string>${ENCRYPTION_SALT}</string>
-	<key>MNEMONIC_LOCAL</key>
-	<string>${MNEMONIC_LOCAL}</string>
 	<key>MNEMONIC_LENGTH</key>
 	<string>${MNEMONIC_LENGTH}</string>
+	<key>MNEMONIC_LOCAL</key>
+	<string>${MNEMONIC_LOCAL}</string>
 </dict>
 </plist>
