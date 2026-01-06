@@ -37,14 +37,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		8A9BCD942EA964E9004C413A /* Exceptions for "bridge" folder in "McBridger" target */ = {
+		8A9BCD942EA964E9004C413A /* Exceptions for "McBridger" folder in "McBridger" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
 			target = 847C33C52E24017600B265E0 /* McBridger */;
 		};
-		8AB612A72F0C578200B48866 /* Exceptions for "bridge" folder in "McBridgerUITests" target */ = {
+		8AB612A72F0C578200B48866 /* Exceptions for "McBridger" folder in "McBridgerUITests" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Models/TransferMessage.swift,
@@ -56,13 +56,13 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		847C33C82E24017600B265E0 /* bridge */ = {
+		847C33C82E24017600B265E0 /* McBridger */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				8A9BCD942EA964E9004C413A /* Exceptions for "bridge" folder in "McBridger" target */,
-				8AB612A72F0C578200B48866 /* Exceptions for "bridge" folder in "McBridgerUITests" target */,
+				8A9BCD942EA964E9004C413A /* Exceptions for "McBridger" folder in "McBridger" target */,
+				8AB612A72F0C578200B48866 /* Exceptions for "McBridger" folder in "McBridgerUITests" target */,
 			);
-			path = bridge;
+			path = McBridger;
 			sourceTree = "<group>";
 		};
 		847C33DA2E24017700B265E0 /* McBridgerTests */ = {
@@ -107,7 +107,7 @@
 		847C33BD2E24017600B265E0 = {
 			isa = PBXGroup;
 			children = (
-				847C33C82E24017600B265E0 /* bridge */,
+				847C33C82E24017600B265E0 /* McBridger */,
 				847C33DA2E24017700B265E0 /* McBridgerTests */,
 				847C33E42E24017700B265E0 /* McBridgerUITests */,
 				847C33C72E24017600B265E0 /* Products */,
@@ -141,7 +141,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				847C33C82E24017600B265E0 /* bridge */,
+				847C33C82E24017600B265E0 /* McBridger */,
 			);
 			name = McBridger;
 			packageProductDependencies = (
@@ -435,17 +435,17 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = bridge/bridge.entitlements;
+				CODE_SIGN_ENTITLEMENTS = McBridger/McBridger.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"bridge/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"McBridger/Preview Content\"";
 				DEVELOPMENT_TEAM = 7MZ7Y7JHLP;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = bridge/Info.plist;
+				INFOPLIST_FILE = McBridger/Info.plist;
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "This app use Bluetooth BLE to establish secure connection";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -466,17 +466,17 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = bridge/bridge.entitlements;
+				CODE_SIGN_ENTITLEMENTS = McBridger/McBridger.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Developer ID Application";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"bridge/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"McBridger/Preview Content\"";
 				DEVELOPMENT_TEAM = 7MZ7Y7JHLP;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = bridge/Info.plist;
+				INFOPLIST_FILE = McBridger/Info.plist;
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "This app use Bluetooth BLE to establish secure connection";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";

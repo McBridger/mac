@@ -85,9 +85,9 @@ jobs:
           APPLE_DEVELOPMENT_TEAM_ID: ${{ secrets.APPLE_DEVELOPMENT_TEAM_ID }}
         run: |
           xcodebuild archive \
-            -project bridge.xcodeproj \
-            -scheme bridge \
-            -archivePath ./build/bridge.xcarchive \
+            -project McBridger.xcodeproj \
+            -scheme McBridger \
+            -archivePath ./build/McBridger.xcarchive \
             DEVELOPMENT_TEAM="${{ secrets.APPLE_DEVELOPMENT_TEAM_ID }}"
 
       - name: Prepare ExportOptions.plist
@@ -126,7 +126,7 @@ jobs:
           APPLE_DEVELOPMENT_TEAM_ID: ${{ secrets.APPLE_DEVELOPMENT_TEAM_ID }}
         run: |
           xcodebuild -exportArchive \
-            -archivePath ./build/bridge.xcarchive \
+            -archivePath ./build/McBridger.xcarchive \
             -exportPath ./build \
             -exportOptionsPlist ./ExportOptions.plist \
             -allowProvisioningUpdates
@@ -135,10 +135,10 @@ jobs:
         if: (steps.versioning.outputs.changed == 'true' || github.event_name == 'workflow_dispatch') && steps.cache-notarized-app.outputs.cache-hit != 'true'
         run: |
           # Zip the app for notarization
-          ditto -c -k --sequesterRsrc --keepParent "build/${{ vars.PRODUCT_NAME }}.app" "build/bridge.zip"
+          ditto -c -k --sequesterRsrc --keepParent "build/${{ vars.PRODUCT_NAME }}.app" "build/McBridger.zip"
 
           # Notarize the app
-          xcrun notarytool submit "build/bridge.zip" \
+          xcrun notarytool submit "build/McBridger.zip" \
             --apple-id "${{ secrets.APPLE_ID }}" \
             --password "${{ secrets.APPLE_ID_PASSWORD }}" \
             --team-id "${{ secrets.APPLE_DEVELOPMENT_TEAM_ID }}" \
@@ -217,7 +217,7 @@ jobs:
           agvtool next-version -all
           git config user.name "GitHub Actions Bot"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add bridge.xcodeproj/project.pbxproj
+          git add McBridger.xcodeproj/project.pbxproj
           git commit -m "chore: Bump version to $RELEASE_VERSION [skip ci]"
           TAG_NAME="v$RELEASE_VERSION"
           echo "Tagging new version $TAG_NAME"
