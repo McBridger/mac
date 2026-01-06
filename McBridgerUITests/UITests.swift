@@ -1,6 +1,6 @@
 import XCTest
 
-final class bridgeUITests: XCTestCase {
+final class UITests: XCTestCase {
 
     override func setUpWithError() throws {
         continueAfterFailure = false

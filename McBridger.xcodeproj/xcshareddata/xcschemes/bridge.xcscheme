@@ -17,8 +17,8 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "847C33C52E24017600B265E0"
                BuildableName = "McBridger.app"
-               BlueprintName = "bridge"
-               ReferencedContainer = "container:bridge.xcodeproj">
+               BlueprintName = "McBridger"
+               ReferencedContainer = "container:McBridger.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -36,9 +36,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "847C33D62E24017700B265E0"
-               BuildableName = "bridgeTests.xctest"
-               BlueprintName = "bridgeTests"
-               ReferencedContainer = "container:bridge.xcodeproj">
+               BuildableName = "McBridgerTests.xctest"
+               BlueprintName = "McBridgerTests"
+               ReferencedContainer = "container:McBridger.xcodeproj">
             </BuildableReference>
          </TestableReference>
          <TestableReference
@@ -47,9 +47,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "847C33E02E24017700B265E0"
-               BuildableName = "bridgeUITests.xctest"
-               BlueprintName = "bridgeUITests"
-               ReferencedContainer = "container:bridge.xcodeproj">
+               BuildableName = "McBridgerUITests.xctest"
+               BlueprintName = "McBridgerUITests"
+               ReferencedContainer = "container:McBridger.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -70,8 +70,8 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "847C33C52E24017600B265E0"
             BuildableName = "McBridger.app"
-            BlueprintName = "bridge"
-            ReferencedContainer = "container:bridge.xcodeproj">
+            BlueprintName = "McBridger"
+            ReferencedContainer = "container:McBridger.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -87,8 +87,8 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "847C33C52E24017600B265E0"
             BuildableName = "McBridger.app"
-            BlueprintName = "bridge"
-            ReferencedContainer = "container:bridge.xcodeproj">
+            BlueprintName = "McBridger"
+            ReferencedContainer = "container:McBridger.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
