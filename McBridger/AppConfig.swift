@@ -14,6 +14,7 @@ public final class AppConfig: AppConfiguring {
 
     public init() {
         self.encryptionSalt = (try? Config.value(for: "ENCRYPTION_SALT")) ?? ""
+        assert(!encryptionSalt.isEmpty, "ENCRYPTION_SALT must be provided in Info.plist/xcconfig")
         self.mnemonic = try? Config.value(for: "MNEMONIC_LOCAL")
         self.mnemonicLength = (try? Config.value(for: "MNEMONIC_LENGTH")) ?? 6
     }
