@@ -2,12 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>ADVERTISE_UUID</key>
-	<string>${ADVERTISE_UUID}</string>
-	<key>CHARACTERISTIC_UUID</key>
-	<string>${CHARACTERISTIC_UUID}</string>
-	<key>SERVICE_UUID</key>
-	<string>${SERVICE_UUID}</string>
 	<key>ENCRYPTION_SALT</key>
 	<string>${ENCRYPTION_SALT}</string>
 	<key>MNEMONIC_LOCAL</key>

@@ -2,26 +2,17 @@ import CoreBluetooth
 import Foundation
 
 public protocol AppConfiguring: Sendable {
-    var advertiseID: String { get }
-    var serviceID: String { get }
-    var characteristicID: String { get }
     var encryptionSalt: String { get }
     var mnemonic: String? { get }
     var mnemonicLength: Int { get }
 }
 
 public final class AppConfig: AppConfiguring {
-    public let advertiseID: String
-    public let serviceID: String
-    public let characteristicID: String
     public let encryptionSalt: String
     public let mnemonic: String?
     public let mnemonicLength: Int
 
     public init() {
-        self.advertiseID = (try? Config.value(for: "ADVERTISE_UUID")) ?? ""
-        self.serviceID = (try? Config.value(for: "SERVICE_UUID")) ?? ""
-        self.characteristicID = (try? Config.value(for: "CHARACTERISTIC_UUID")) ?? ""
         self.encryptionSalt = (try? Config.value(for: "ENCRYPTION_SALT")) ?? ""
         self.mnemonic = try? Config.value(for: "MNEMONIC_LOCAL")
         self.mnemonicLength = (try? Config.value(for: "MNEMONIC_LENGTH")) ?? 6

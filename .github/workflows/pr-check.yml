@@ -13,9 +13,7 @@ jobs:
 
       - name: Create xcconfig file
         run: |
-          echo "SERVICE_UUID = 93191b22-c437-4348-b10f-f522e69f289c" > Shared.xcconfig
-          echo "CHARACTERISTIC_UUID = 7569273b-b3e3-4672-867d-b07fc54be79f" >> Shared.xcconfig
-          echo "ADVERTISE_UUID = bf13657b-b172-44f2-8c11-1b25a521a28a" >> Shared.xcconfig
+          echo "ENCRYPTION_SALT = 6d63627269646765725f73616c745f32303236" >> Shared.xcconfig
 
       - name: Build Project
         run: |
