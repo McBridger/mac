@@ -3,7 +3,7 @@ import Combine
 import CoreBluetooth
 import Foundation
 
-class MockBluetoothManager: BluetoothManaging {
+class MockBluetoothManager: BluetoothManaging, @unchecked Sendable {
     let power = CurrentValueSubject<BluetoothPowerState, Never>(.poweredOn)
     let connection = CurrentValueSubject<ConnectionState, Never>(.disconnected)
     let devices = CurrentValueSubject<[DeviceInfo], Never>([])
@@ -34,7 +34,7 @@ class MockBluetoothManager: BluetoothManaging {
         }
     }
 
-    func start(advertiseUUID: CBUUID, serviceUUID: CBUUID, characteristicUUID: CBUUID) {
+    func start(advertise: Data, service: Data, characteristic: Data) async {
         connection.send(.advertising)
     }
 
@@ -43,16 +43,18 @@ class MockBluetoothManager: BluetoothManaging {
 
         // Small delay to simulate device identification after link establishment
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            let mockID = UUID()
-            self.markDeviceAsIntroduced(id: mockID, name: "Pixel 7 Pro (Mock)")
+            Task {
+                let mockID = UUID()
+                await self.markDeviceAsIntroduced(id: mockID, name: "Pixel 7 Pro (Mock)")
+            }
         }
     }
 
-    func stop() {
+    func stop() async {
         connection.send(.disconnected)
     }
 
-    func send(data: Data) {
+    func send(data: Data) async {
         print("Mock BT Send: \(data.count) bytes")
         // Notify the test suite that data was sent
         // Using a string for the data to avoid potential issues with Data over DistributedNotification
@@ -64,7 +66,7 @@ class MockBluetoothManager: BluetoothManaging {
         )
     }
 
-    func markDeviceAsIntroduced(id: UUID, name: String) {
+    func markDeviceAsIntroduced(id: UUID, name: String) async {
         let device = DeviceInfo(id: id, name: name, isIntroduced: true)
         devices.send([device])
     }

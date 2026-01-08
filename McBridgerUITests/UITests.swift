@@ -91,11 +91,11 @@ final class UITests: XCTestCase {
         Thread.sleep(forTimeInterval: 1.0)
 
         // 1. Fill the mnemonic form
-        let words = ["alpha", "beta", "gamma"]
+        let words = ["foo", "bar", "baz"]
         for (index, word) in words.enumerated() {
             let field = app.textFields["mnemonic_word_\(index)"]
 
-            if index != 0 { field.click() }
+            field.click()
             field.typeText(word)
         }
 
