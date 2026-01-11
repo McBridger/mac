@@ -15,6 +15,10 @@ extension Container {
         self { BluetoothManager() }.singleton
     }
     
+    var bleDriver: Factory<BLEDriverProtocol> {
+        self { BLEDriver() }.singleton
+    }
+    
     var clipboardManager: Factory<ClipboardManaging> {
         self { ClipboardManager() }.singleton
     }

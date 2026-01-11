@@ -89,7 +89,9 @@ public final class AppLogic {
                 .sink { [weak self] message in
                     self?.logger.info("--- Broker: Handling Device Introduction: \(message.value) ---")
                     if let address = message.address, let uuid = UUID(uuidString: address) {
-                        self?.bluetoothService.markDeviceAsIntroduced(id: uuid, name: message.value)
+                        Task { [weak self] in
+                            await self?.bluetoothService.markDeviceAsIntroduced(id: uuid, name: message.value)
+                        }
                     }
                 }
                 .store(in: &self.cancellables)
@@ -109,7 +111,9 @@ public final class AppLogic {
         queue.async { [weak self] in
             guard let self = self else { return }
             self.logger.info("--- Broker: Full reset initiated ---")
-            self.bluetoothService.stop()
+            Task { [weak self] in
+                await self?.bluetoothService.stop()
+            }
             self.encryptionService.reset()
             self.logger.info("--- Broker: Reset complete, returning to IDLE state ---")
         }
@@ -128,11 +132,13 @@ public final class AppLogic {
             return
         }
         
-        bluetoothService.start(
-            advertiseUUID: CBUUID(data: advID),
-            serviceUUID: CBUUID(data: svcID),
-            characteristicUUID: CBUUID(data: chrID)
-        )
+        Task { [weak self, advID, svcID, chrID] in
+            await self?.bluetoothService.start(
+                advertise: advID,
+                service: svcID,
+                characteristic: chrID
+            )
+        }
         
         self.state.send(.ready)
         DistributedNotificationCenter.default().postNotificationName(
@@ -148,7 +154,9 @@ public final class AppLogic {
             logger.error("--- Broker: Encryption failed for outgoing message ---")
             return
         }
-        bluetoothService.send(data: data)
+        Task { [weak self, data] in
+            await self?.bluetoothService.send(data: data)
+        }
     }
 
     private func addToHistory(_ text: String) {
