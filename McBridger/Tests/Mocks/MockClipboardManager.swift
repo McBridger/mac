@@ -7,7 +7,7 @@ class MockClipboardManager: ClipboardManaging {
 
     public init() {
         DistributedNotificationCenter.default().addObserver(
-            forName: NSNotification.Name(TestNotification.simulateClipboardChange),
+            forName: TestNotification.simulateClipboardChange.name,
             object: nil,
             queue: .main
         ) { [weak self] notification in
@@ -20,7 +20,7 @@ class MockClipboardManager: ClipboardManaging {
         print("Mock Clipboard Set: \(text)")
         // Notify tests that clipboard was updated from remote
         DistributedNotificationCenter.default().postNotificationName(
-            NSNotification.Name(TestNotification.clipboardSetLocally),
+            TestNotification.clipboardSetLocally.name,
             object: text,
             userInfo: nil,
             deliverImmediately: true

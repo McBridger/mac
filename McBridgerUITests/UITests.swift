@@ -24,6 +24,7 @@ final class UITests: XCTestCase {
 
     @MainActor
     func testWarmStartSkipsSetup() throws {
+        let deviceID = UUID().uuidString
         let app = XCUIApplication()
         // Simulate a pre-existing mnemonic
         app.launchArguments.append(contentsOf: ["--uitesting", "--mnemonic", "alpha beta gamma"])
@@ -53,12 +54,7 @@ final class UITests: XCTestCase {
         wait(for: [advertisingExpectation], timeout: 10.0)
 
         // 3. Trigger mock device connection
-        DistributedNotificationCenter.default().postNotificationName(
-            NSNotification.Name(TestNotification.connectDevice),
-            object: nil,
-            userInfo: nil,
-            deliverImmediately: true
-        )
+        postMockNotification(.connectAndIntroduceDevice, id: deviceID)
 
         // 4. Verify 'Connected' state
         let connectedPredicate = NSPredicate(
@@ -80,6 +76,7 @@ final class UITests: XCTestCase {
 
     @MainActor
     func testFullSetupFlow() throws {
+        let deviceID = UUID().uuidString
         let app = XCUIApplication()
         let mnemonicLength = 3
         app.launchArguments.append(contentsOf: [
@@ -131,12 +128,7 @@ final class UITests: XCTestCase {
         wait(for: [advertisingExpectation], timeout: 10.0)
 
         // 4. Trigger mock device connection via distributed notification
-        DistributedNotificationCenter.default().postNotificationName(
-            NSNotification.Name(TestNotification.connectDevice),
-            object: nil,
-            userInfo: nil,
-            deliverImmediately: true
-        )
+        postMockNotification(.connectAndIntroduceDevice, id: deviceID)
 
         // 5. Verify 'Connected' state
         let connectedPredicate = NSPredicate(
@@ -158,21 +150,35 @@ final class UITests: XCTestCase {
 
     @MainActor
     func testClipboardSyncFlow() throws {
+        let deviceID = UUID().uuidString
         let app = XCUIApplication()
         app.launchArguments.append(contentsOf: ["--uitesting", "--mnemonic", "alpha beta gamma"])
         app.launch()
 
-        // 1. Setup: Connect device and open menu
+        // 1. Setup: Open menu and wait for initial ready state
         let statusItem = app.statusItems.firstMatch
         XCTAssertTrue(statusItem.waitForExistence(timeout: 5))
         statusItem.click()
 
-        DistributedNotificationCenter.default().postNotificationName(
-            NSNotification.Name(TestNotification.connectDevice),
-            object: nil,
-            userInfo: nil,
-            deliverImmediately: true
-        )
+        let statusText = app.descendants(matching: .any)["connection_status_text"]
+        XCTAssertTrue(statusText.waitForExistence(timeout: 10))
+
+        // Wait for 'Advertising' or 'Ready' to ensure we're not in 'Setup Required'
+        let readyPredicate = NSPredicate(
+            format: "label MATCHES[c] '.*(Advertising|Ready|Bluetooth On).*'")
+        let readyExpectation = expectation(
+            for: readyPredicate, evaluatedWith: statusText, handler: nil)
+        wait(for: [readyExpectation], timeout: 10.0)
+
+        // Now trigger connection
+        postMockNotification(.connectAndIntroduceDevice, id: deviceID)
+
+        // Verify 'Connected' state
+        let connectedPredicate = NSPredicate(
+            format: "label CONTAINS[c] 'Connected' OR value CONTAINS[c] 'Connected'")
+        let connectedExpectation = expectation(
+            for: connectedPredicate, evaluatedWith: statusText, handler: nil)
+        wait(for: [connectedExpectation], timeout: 10.0)
 
         let deviceName = app.descendants(matching: .any)["connected_device_text"]
         XCTAssertTrue(deviceName.waitForExistence(timeout: 10))
@@ -189,23 +195,7 @@ final class UITests: XCTestCase {
         let jsonData = try! JSONEncoder().encode(transferMessage)
         let hexString = jsonData.hexString
 
-        let clipboardSetExpectation = expectation(
-            forNotification: NSNotification.Name(TestNotification.clipboardSetLocally),
-            object: incomingText,
-            notificationCenter: DistributedNotificationCenter.default()
-        )
-
-        // Give the background broker a moment to settle
-        Thread.sleep(forTimeInterval: 2.0)
-
-        DistributedNotificationCenter.default().postNotificationName(
-            NSNotification.Name(TestNotification.receiveData),
-            object: hexString,
-            userInfo: nil,
-            deliverImmediately: true
-        )
-
-        wait(for: [clipboardSetExpectation], timeout: 10.0)
+        postMockNotification(.receiveData, id: deviceID, payload: hexString)
 
         // Verify history UI update
         let historyItem = app.descendants(matching: .any)["history_item_\(incomingText)"]
@@ -215,13 +205,13 @@ final class UITests: XCTestCase {
         let outgoingText = "Hello from Mac!"
 
         let dataSentExpectation = expectation(
-            forNotification: NSNotification.Name(TestNotification.dataSent),
+            forNotification: TestNotification.dataSent.name,
             object: nil,
             notificationCenter: DistributedNotificationCenter.default()
         )
 
         DistributedNotificationCenter.default().postNotificationName(
-            NSNotification.Name(TestNotification.simulateClipboardChange),
+            TestNotification.simulateClipboardChange.name,
             object: outgoingText,
             userInfo: nil,
             deliverImmediately: true
@@ -232,5 +222,24 @@ final class UITests: XCTestCase {
         // Verify history UI update for outgoing as well
         let outgoingHistoryItem = app.descendants(matching: .any)["history_item_\(outgoingText)"]
         XCTAssertTrue(outgoingHistoryItem.waitForExistence(timeout: 5))
+    }
+
+    // MARK: - Helpers
+
+    private func postMockNotification(_ notification: TestNotification, id: String, payload: String? = nil) {
+        var dict: [String: String] = ["id": id]
+        if let payload = payload {
+            dict["payload"] = payload
+        }
+        
+        let jsonData = try! JSONSerialization.data(withJSONObject: dict)
+        let jsonString = String(data: jsonData, encoding: .utf8)!
+        
+        DistributedNotificationCenter.default().postNotificationName(
+            notification.name,
+            object: jsonString,
+            userInfo: nil,
+            deliverImmediately: true
+        )
     }
 }

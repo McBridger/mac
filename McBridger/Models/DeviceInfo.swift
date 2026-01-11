@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - Device Info Struct
 
-public struct DeviceInfo: Sendable, Identifiable {
+public struct DeviceInfo: Sendable, Identifiable, Equatable {
     public let id: UUID
     public var name: String
     public var isIntroduced: Bool
