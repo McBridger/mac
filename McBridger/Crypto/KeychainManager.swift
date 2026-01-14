@@ -4,7 +4,10 @@ import OSLog
 
 internal final class KeychainManager: KeychainManaging {
     private let logger = Logger(subsystem: "com.mcbridger.Keychain", category: "Manager")
-    private let service = "com.mcbridger.sync-phrase"
+    
+    private var service: String {
+        Bundle.main.bundleIdentifier ?? "com.mcbridger.sync-phrase"
+    }
 
     private func query(for key: KeychainKey) -> [String: Any] {
         [
