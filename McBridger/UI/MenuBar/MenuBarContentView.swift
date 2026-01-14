@@ -8,7 +8,7 @@ struct MenuBarContentView: View {
         VStack(alignment: .leading, spacing: 12) {
             // Header
             HStack {
-                Text("McBridger")
+                Text(Bundle.main.appName)
                     .font(.headline)
                 Spacer()
                 Button {
@@ -96,7 +96,7 @@ struct MenuBarContentView: View {
             } label: {
                 HStack {
                     Image(systemName: "power")
-                    Text("Quit McBridger")
+                    Text("Quit \(Bundle.main.appName)")
                 }
                 .frame(maxWidth: .infinity)
             }

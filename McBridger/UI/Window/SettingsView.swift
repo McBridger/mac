@@ -74,7 +74,7 @@ struct SetupSectionView: View {
                     .font(.system(size: 48))
                     .foregroundColor(.accentColor)
                 
-                Text("Setup McBridger")
+                Text("Setup \(Bundle.main.appName)")
                     .font(.title2)
                     .fontWeight(.bold)
                 
@@ -160,14 +160,14 @@ struct AboutView: View {
                     .shadow(radius: 4)
                 
                 VStack(spacing: 4) {
-                    Text("McBridger").font(.system(size: 24, weight: .bold))
+                    Text(Bundle.main.appName).font(.system(size: 24, weight: .bold))
                     Text("Version \(appVersion)").font(.subheadline).foregroundColor(.secondary)
                 }
             }
             Divider().padding(.vertical, 24)
             VStack(spacing: 12) {
                 Text("Secure clipboard synchronization between your devices.").font(.body).multilineTextAlignment(.center)
-                Text("© 2026 McBridger Organization. All rights reserved.").font(.caption).foregroundColor(.secondary)
+                Text("© 2026 \(Bundle.main.appName) Organization. All rights reserved.").font(.caption).foregroundColor(.secondary)
             }
             .padding(.horizontal, 40)
             Spacer()
