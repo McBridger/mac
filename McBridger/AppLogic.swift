@@ -138,15 +138,14 @@ public final class AppLogic {
                 service: svcID,
                 characteristic: chrID
             )
+            self?.state.send(.ready)
+            DistributedNotificationCenter.default().postNotificationName(
+                NSNotification.Name("com.mcbridger.service.ready"),
+                object: nil,
+                userInfo: nil,
+                deliverImmediately: true
+            )
         }
-        
-        self.state.send(.ready)
-        DistributedNotificationCenter.default().postNotificationName(
-            NSNotification.Name("com.mcbridger.service.ready"),
-            object: nil,
-            userInfo: nil,
-            deliverImmediately: true
-        )
     }
 
     private func sendToTransport(_ message: BridgerMessage) {

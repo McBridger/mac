@@ -30,18 +30,15 @@ class AppViewModel: ObservableObject {
     }
     
     private func setupBindings() {
-        // 1. Unified Status (The Brain)
         Publishers.CombineLatest3(logic.state, bluetooth.power, bluetooth.connection)
             .receive(on: RunLoop.main)
             .map { logicState, power, connection -> BrokerState in
-                if logicState == .idle || logicState == .encrypting {
+                if logicState == .idle || logicState == .encrypting || logicState == .transportInitializing {
                     return logicState
                 }
-                
                 if power == .poweredOff {
                     return .bluetoothOff
                 }
-                
                 switch connection {
                     case .advertising: return .advertising
                     case .connected: return .connected

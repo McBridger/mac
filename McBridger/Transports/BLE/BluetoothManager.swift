@@ -20,6 +20,11 @@ public actor BluetoothManager: BluetoothManaging {
         var isPoweredOn: Bool = false
         var isAdvertising: Bool = false
         var connections: [UUID: DeviceInfo] = [:]
+
+        mutating func resetRuntime() {
+            isAdvertising = false
+            connections.removeAll()
+        }
     }
 
     private var state = State()
@@ -55,7 +60,7 @@ public actor BluetoothManager: BluetoothManaging {
         driver.stop()
         
         resetRuntime()
-        setState { $0 = State() }
+        setState { $0.resetRuntime() }
     }
 
     public func send(data: Data) {
