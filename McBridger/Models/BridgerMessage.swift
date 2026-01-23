@@ -1,70 +1,111 @@
 import Foundation
 import OSLog
 
-public enum MessageType: Int, Codable, Sendable {
-    case CLIPBOARD = 0
-    case DEVICE_NAME = 1
+public enum MessageContent {
+    case clipboard(text: String)
+    case intro(deviceName: String)
+    case file(url: String, name: String, size: String)
+
+    var type: MessageType {
+        switch self {
+        case .clipboard: return .clipboard
+        case .intro: return .intro
+        case .file: return .file
+        }
+    }
 }
 
-public struct BridgerMessage: Codable, Sendable {
-    public let type: MessageType
-    public let value: String
-    public let address: String?
-    public let id: UUID
-    public let timestamp: Date
+public struct Message: Identifiable {
+    public let id: String
+    public let timestamp: Double
+    public var address: String?
+    public let content: MessageContent
 
     public init(
-        type: MessageType, value: String, address: String? = nil, id: UUID = UUID(),
-        timestamp: Date = Date()
+        content: MessageContent,
+        address: String? = nil,
+        id: String = UUID().uuidString,
+        timestamp: Double = Date().timeIntervalSince1970
     ) {
-        self.type = type
-        self.value = value
+        self.content = content
         self.address = address
         self.id = id
         self.timestamp = timestamp
     }
+}
 
-    /// Converts message to raw JSON data using TransferMessage DTO
-    public func toData() -> Data? {
-        let transferMessage = TransferMessage(
-            t: self.type.rawValue,
-            p: self.value,
-            ts: self.timestamp.timeIntervalSince1970
-        )
-        do {
-            return try JSONEncoder().encode(transferMessage)
-        } catch {
-            Logger.coreModels.error(
-                "Failed to encode BridgerMessage: \(error.localizedDescription)")
-            return nil
+extension Message {
+    public func toData() throws -> Data {
+        let encoder = JSONEncoder()
+        
+        switch content {
+        case .clipboard(let text):
+            let dto = ClipboardDto(id: id, ts: timestamp, a: address, p: text)
+            return try encoder.encode(dto)
+            
+        case .intro(let deviceName):
+            let dto = IntroDto(id: id, ts: timestamp, a: address, p: deviceName)
+            return try encoder.encode(dto)
+            
+        case .file(let url, let name, let size):
+            let dto = FileDto(id: id, ts: timestamp, a: address, u: url, n: name, s: size)
+            return try encoder.encode(dto)
         }
     }
 
-    /// Creates a BridgerMessage from raw JSON data
-    public static func fromData(_ data: Data, address: String? = nil) throws -> BridgerMessage {
+    public static func fromData(_ data: Data) throws -> Message {
         let decoder = JSONDecoder()
-        let transferMessage = try decoder.decode(TransferMessage.self, from: data)
 
-        guard let messageType = MessageType(rawValue: transferMessage.t) else {
-            throw BridgerMessageError.unknownMessageType
+        let header: BaseMessageDto
+        do {
+            header = try decoder.decode(BaseMessageDto.self, from: data)
+        } catch {
+            let rawJson = String(data: data, encoding: .utf8) ?? "Non-UTF8"
+            Logger.coreModels.error("Decoding error: \(error.localizedDescription). Data: \(rawJson)")
+            throw MessageError.unknownMessageType
         }
 
-        // Replay Protection Check (Basic)
         let now = Date().timeIntervalSince1970
-        if abs(now - transferMessage.ts) > 60 {
-            throw BridgerMessageError.expiredMessage
+        if abs(now - header.ts) > 60 {
+            Logger.coreModels.warning("Expired message rejected: \(header.id)")
+            throw MessageError.expiredMessage
         }
+        
+        switch header.t {
+        case .clipboard:
+            let dto = try decoder.decode(ClipboardDto.self, from: data)
+            return Message(
+                content: .clipboard(text: dto.p),
+                address: dto.a,
+                id: dto.id,
+                timestamp: dto.ts
+            )
+            
+        case .intro:
+            let dto = try decoder.decode(IntroDto.self, from: data)
+            return Message(
+                content: .intro(deviceName: dto.p),
+                address: dto.a,
+                id: dto.id,
+                timestamp: dto.ts
+            )
+            
+        case .file:
+            let dto = try decoder.decode(FileDto.self, from: data)
+            return Message(
+                content: .file(url: dto.u, name: dto.n, size: dto.s),
+                address: dto.a,
+                id: dto.id,
+                timestamp: dto.ts
+            )
 
-        return BridgerMessage(
-            type: messageType,
-            value: transferMessage.p,
-            address: address,
-            timestamp: Date(timeIntervalSince1970: transferMessage.ts)
-        )
+        default:
+            throw MessageError.unknownMessageType
+        }
     }
 }
 
-public enum BridgerMessageError: Error, LocalizedError {
+public enum MessageError: Error, LocalizedError {
     case unknownMessageType
     case expiredMessage
     case decryptionFailed
