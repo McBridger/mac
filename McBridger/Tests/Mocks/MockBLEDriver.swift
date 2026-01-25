@@ -88,10 +88,12 @@ public final class MockBLEDriver: BLEDriverProtocol, @unchecked Sendable {
     }
 
     private func simulateIntroduction(id: UUID) {
-        let introMessage = TransferMessage(
-            t: 1, // DEVICE_NAME
+        let introMessage = IntroDto(
+            t: BridgerMessageType.intro, // DEVICE_NAME
+            id: id.uuidString,
+            ts: Date().timeIntervalSince1970,
+            a: nil,
             p: "Pixel 7 Pro (Mock)",
-            ts: Date().timeIntervalSince1970
         )
         if let data = try? JSONEncoder().encode(introMessage) {
             self.continuation.yield(.didReceiveData(data, from: id))

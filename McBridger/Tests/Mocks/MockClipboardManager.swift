@@ -12,7 +12,7 @@ class MockClipboardManager: ClipboardManaging {
             queue: .main
         ) { [weak self] notification in
             guard let text = notification.object as? String else { return }
-            self?.update.send(BridgerMessage(type: .CLIPBOARD, value: text))
+            self?.update.send(BridgerMessage(content: .clipboard(text: text)))
         }
     }
 

@@ -34,11 +34,7 @@ public final class AppLogic {
             // 1. Outgoing: Clipboard -> Encrypt -> Transport
             self.clipboardService.update
                 .subscribe(on: self.queue)
-                .compactMap { $0 }
-                .sink { [weak self] message in
-                    self?.addToHistory(message.value)
-                    self?.sendToTransport(message)
-                }
+                .sink { [weak self] message in self?.onLocalUpdate(message) }
                 .store(in: &self.cancellables)
             
             // 2. Lifecycle: Encryption Ready -> Setup Transport
@@ -59,42 +55,64 @@ public final class AppLogic {
                 .subscribe(on: self.queue)
                 .compactMap { $0 }
                 .flatMap(maxPublishers: .max(1)) { [weak self] (data, address) in
-                    Just((data, address))
-                        .tryMap { d, a in try self?.encryptionService.decryptMessage(d, address: a) }
-                        .compactMap { $0 }
-                        .catch { [weak self] error in
-                            self?.logger.error("--- Broker: Decryption error: \(error.localizedDescription) ---")
-                            return Empty<BridgerMessage, Never>()
-                        }
+                    self?.decrypt(data: data, address: address) ?? Empty().eraseToAnyPublisher()
                 }
-                .share()
+                .sink { [weak self] message in self?.onIncomingUpdate(message) }
+                .store(in: &self.cancellables)  
+        }
+    }
+    
+    private func decrypt(data: Data, address: String?) -> AnyPublisher<BridgerMessage, Never> {
+        Just((data, address))
+            .tryMap { [weak self] d, a in
+                try self?.encryptionService.decryptMessage(d, address: a)
+            }
+            .compactMap { $0 }
+            .catch { [weak self] error -> Empty<BridgerMessage, Never> in
+                self?.logger.error("--- Broker: Decryption error: \(error.localizedDescription) ---")
+                return Empty()
+            }
+            .eraseToAnyPublisher()
+    }
 
-            // Branch A: Clipboard Updates
-            incomingMessages
-                .filter { $0.type == .CLIPBOARD }
-                .sink { [weak self] message in
-                    self?.logger.info("--- Broker: Handling Incoming Clipboard ---")
-                    self?.clipboardService.setText(message.value)
-                    self?.addToHistory(message.value)
-                    self?.notificationService.showNotification(
-                        title: "Clipboard Synced",
-                        body: "New data received via McBridger"
-                    )
-                }
-                .store(in: &self.cancellables)
-
-            // Branch B: Device Introduction
-            incomingMessages
-                .filter { $0.type == .DEVICE_NAME }
-                .sink { [weak self] message in
-                    self?.logger.info("--- Broker: Handling Device Introduction: \(message.value) ---")
-                    if let address = message.address, let uuid = UUID(uuidString: address) {
-                        Task { [weak self] in
-                            await self?.bluetoothService.markDeviceAsIntroduced(id: uuid, name: message.value)
-                        }
+    private func onIncomingUpdate(_ message: BridgerMessage) {
+        switch message.content {
+            case .clipboard(let text):
+                self.logger.info("--- Broker: Handling Incoming Clipboard ---")
+                self.clipboardService.setText(text)
+                self.addToHistory(text)
+                self.notificationService.showNotification(
+                    title: "Clipboard Synced",
+                    body: "New data received via McBridger"
+                )
+            
+            case .intro(let deviceName):
+                self.logger.info("--- Broker: Handling Device Introduction: \(deviceName) ---")
+                if let address = message.address, let uuid = UUID(uuidString: address) {
+                    Task { [weak self] in
+                        await self?.bluetoothService.markDeviceAsIntroduced(id: uuid, name: deviceName)
                     }
                 }
-                .store(in: &self.cancellables)
+
+            case .file(let url, let name, let size):
+                self.logger.info("--- Broker: Incoming File URL: \(url); Name: \(name); Size: \(size) ---")
+                // Тут логика для файла, addToHistory(текст) тут уже не прокатит
+                // self?.handleFile(url) 
+        }
+    }
+
+    private func onLocalUpdate(_ message: BridgerMessage) {
+        switch message.content {
+            case .clipboard(let text):
+                self.addToHistory(text)
+                self.sendToTransport(message)
+
+            case .file(let url, let name, let size):
+                self.logger.info("--- Broker: Incoming File URL: \(url); Name: \(name); Size: \(size) ---")
+                // Тут логика для файла, addToHistory(текст) тут уже не прокатит
+                // self?.handleFile(url) 
+
+            default: break
         }
     }
     

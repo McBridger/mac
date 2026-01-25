@@ -66,7 +66,7 @@ public class ClipboardManager: ClipboardManaging {
 
         if let newText = pasteboard.string(forType: .string) {
             logger.info("New text found in pasteboard. Sending message.")
-            update.send(BridgerMessage(type: .CLIPBOARD, value: newText))
+            update.send(BridgerMessage(content: .clipboard(text: newText)))
         } else {
             logger.warning("Pasteboard changed, but no string content found.")
         }

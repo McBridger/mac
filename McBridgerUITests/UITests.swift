@@ -187,10 +187,12 @@ final class UITests: XCTestCase {
         let incomingText = "Hello from Android!"
 
         // Use proper TransferMessage DTO for type safety
-        let transferMessage = TransferMessage(
-            t: 0,
+        let transferMessage = ClipboardDto(
+            t: .clipboard,
+            id: UUID().uuidString,
+            ts: Date().timeIntervalSince1970,
+            a: UUID().uuidString,
             p: incomingText,
-            ts: Date().timeIntervalSince1970
         )
         let jsonData = try! JSONEncoder().encode(transferMessage)
         let hexString = jsonData.hexString

@@ -5,7 +5,7 @@ final class MessageTests: XCTestCase {
 
     func testMessageSerialization() throws {
         let originalValue = "Hello, Bridger!"
-        let message = BridgerMessage(type: .CLIPBOARD, value: originalValue)
+        let message = BridgerMessage(content: .clipboard(text: originalValue))
         
         // 1. Serialize to Data
         guard let data = message.toData() else {
@@ -16,24 +16,26 @@ final class MessageTests: XCTestCase {
         // 2. Deserialize back
         let decoded = try BridgerMessage.fromData(data)
         
-        XCTAssertEqual(decoded.value, originalValue)
-        XCTAssertEqual(decoded.type, .CLIPBOARD)
+        XCTAssertEqual(decoded.content.text, originalValue)
+        XCTAssertEqual(decoded.type, .clipboard)
     }
 
     func testReplayProtection() throws {
         // Create a message from the "future" (invalid)
         let futureDate = Date().addingTimeInterval(120) // +2 minutes
-        let transferMessage = TransferMessage(
-            t: MessageType.CLIPBOARD.rawValue,
+        let transferMessage = ClipboardDto(
+            t: .clipboard,
+            id: UUID().uuidString,
+            ts: futureDate.timeIntervalSince1970,
+            a: UUID().uuidString,
             p: "Old Data",
-            ts: futureDate.timeIntervalSince1970
         )
         
         let data = try JSONEncoder().encode(transferMessage)
         
         // Should throw .expiredMessage
         XCTAssertThrowsError(try BridgerMessage.fromData(data)) { error in
-            XCTAssertEqual(error as? BridgerMessageError, .expiredMessage)
+            XCTAssertEqual(error as? BridgerMessageError, .expired)
         }
     }
     
@@ -41,7 +43,7 @@ final class MessageTests: XCTestCase {
         let invalidData = "{\"t\": 99, \"p\": \"test\", \"ts\": \(Date().timeIntervalSince1970)}".data(using: .utf8)!
         
         XCTAssertThrowsError(try BridgerMessage.fromData(invalidData)) { error in
-            XCTAssertEqual(error as? BridgerMessageError, .unknownMessageType)
+            XCTAssertEqual(error as? BridgerMessageError, .unknownType)
         }
     }
 }
