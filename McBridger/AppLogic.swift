@@ -19,6 +19,7 @@ public final class AppLogic {
     @Injected(\.encryptionService) private var encryptionService: EncryptionServing
     @Injected(\.notificationService) private var notificationService
     @Injected(\.bluetoothManager) private var bluetoothService: BluetoothManaging
+    @Injected(\.tcpManager) private var tcpService: TcpManaging
     
     private var cancellables = Set<AnyCancellable>()
 
@@ -163,6 +164,14 @@ public final class AppLogic {
                 userInfo: nil,
                 deliverImmediately: true
             )
+        }
+        
+        Task { [weak self] in
+            do {
+                try await self?.tcpService.start(port: 41492)
+            } catch {
+                self?.logger.error("Error starting TCP service: \(error.localizedDescription)")
+            }
         }
     }
 

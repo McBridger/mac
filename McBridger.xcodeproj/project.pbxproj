@@ -10,6 +10,8 @@
 		8A8EEC2D2F0723FA007171EF /* Factory in Frameworks */ = {isa = PBXBuildFile; productRef = 8A8EEC2C2F0723FA007171EF /* Factory */; };
 		8A8EEC2F2F0723FA007171EF /* FactoryTesting in Frameworks */ = {isa = PBXBuildFile; productRef = 8A8EEC2E2F0723FA007171EF /* FactoryTesting */; };
 		8A9BCD902EA81445004C413A /* Shared.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 8A9BCD8F2EA81445004C413A /* Shared.xcconfig */; };
+		8AFF071E2F2807510018C48E /* Vapor in Frameworks */ = {isa = PBXBuildFile; productRef = 8AFF071D2F2807510018C48E /* Vapor */; };
+		8AFF07202F2807510018C48E /* VaporTesting in Frameworks */ = {isa = PBXBuildFile; productRef = 8AFF071F2F2807510018C48E /* VaporTesting */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -83,6 +85,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				8A8EEC2D2F0723FA007171EF /* Factory in Frameworks */,
+				8AFF071E2F2807510018C48E /* Vapor in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -90,6 +93,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8AFF07202F2807510018C48E /* VaporTesting in Frameworks */,
 				8A8EEC2F2F0723FA007171EF /* FactoryTesting in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -146,6 +150,7 @@
 			name = McBridger;
 			packageProductDependencies = (
 				8A8EEC2C2F0723FA007171EF /* Factory */,
+				8AFF071D2F2807510018C48E /* Vapor */,
 			);
 			productName = bridge;
 			productReference = 847C33C62E24017600B265E0 /* McBridgerDev.app */;
@@ -170,6 +175,7 @@
 			name = McBridgerTests;
 			packageProductDependencies = (
 				8A8EEC2E2F0723FA007171EF /* FactoryTesting */,
+				8AFF071F2F2807510018C48E /* VaporTesting */,
 			);
 			productName = bridgeTests;
 			productReference = 847C33D72E24017700B265E0 /* McBridgerTests.xctest */;
@@ -232,6 +238,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				8A8EEC2B2F0723FA007171EF /* XCRemoteSwiftPackageReference "Factory" */,
+				8AFF071C2F2807510018C48E /* XCRemoteSwiftPackageReference "vapor" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 847C33C72E24017600B265E0 /* Products */;
@@ -442,8 +449,19 @@
 				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_ASSET_PATHS = "\"McBridger/Preview Content\"";
 				DEVELOPMENT_TEAM = 7MZ7Y7JHLP;
+				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = McBridger/Info.plist;
 				INFOPLIST_KEY_LSUIElement = YES;
@@ -473,8 +491,19 @@
 				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_ASSET_PATHS = "\"McBridger/Preview Content\"";
 				DEVELOPMENT_TEAM = 7MZ7Y7JHLP;
+				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = McBridger/Info.plist;
 				INFOPLIST_KEY_LSUIElement = YES;
@@ -612,6 +641,14 @@
 				minimumVersion = 2.5.3;
 			};
 		};
+		8AFF071C2F2807510018C48E /* XCRemoteSwiftPackageReference "vapor" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/vapor/vapor";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.121.1;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -624,6 +661,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 8A8EEC2B2F0723FA007171EF /* XCRemoteSwiftPackageReference "Factory" */;
 			productName = FactoryTesting;
+		};
+		8AFF071D2F2807510018C48E /* Vapor */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8AFF071C2F2807510018C48E /* XCRemoteSwiftPackageReference "vapor" */;
+			productName = Vapor;
+		};
+		8AFF071F2F2807510018C48E /* VaporTesting */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8AFF071C2F2807510018C48E /* XCRemoteSwiftPackageReference "vapor" */;
+			productName = VaporTesting;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -34,4 +34,12 @@ extension Container {
     var appLogic: Factory<AppLogic> {
         self { AppLogic() }.singleton
     }
+
+    var tcpFileProvider: Factory<TcpFileProviding> {
+        self { TcpFileProvider() }.singleton
+    }
+
+    var tcpManager: Factory<TcpManaging> {
+        self { TcpManager() }.singleton
+    }
 }
