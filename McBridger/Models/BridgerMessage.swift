@@ -2,22 +2,18 @@ import Foundation
 import OSLog
 
 public enum BridgerMessageContent {
-    case clipboard(text: String)
-    case intro(deviceName: String)
-    case file(url: String, name: String, size: String)
+    case tiny(text: String)
+    case intro(deviceName: String, ip: String, port: Int)
+    case blob(name: String, size: Int64, blobType: BlobType)
+    case chunk(id: String, offset: Int64, data: Data)
     
     public var text: String? {
-        if case .clipboard(let text) = self { return text }
+        if case .tiny(let text) = self { return text }
         return nil
     }
     
     public var device: String? {
-        if case .intro(let name) = self { return name }
-        return nil
-    }
-    
-    public var file: (url: String, name: String, size: String)? {
-        if case .file(let url, let name, let size) = self { return (url, name, size) }
+        if case .intro(let name, _, _) = self { return name }
         return nil
     }
 }
@@ -42,83 +38,136 @@ public struct BridgerMessage: Identifiable {
     
     public var type: BridgerMessageType {
         switch self.content {
-            case .clipboard: return .clipboard
+            case .tiny: return .tiny
             case .intro: return .intro
-            case .file: return .file
+            case .blob: return .blob
+            case .chunk: return .chunk
         }
     }
 }
 
 extension BridgerMessage {
     public func toData() -> Data? {
-        let encoder = JSONEncoder()
+        var data = Data()
         
-        do {
-            switch content {
-            case .clipboard(let text):
-                let dto = ClipboardDto(id: id, ts: timestamp, a: address, p: text)
-                return try encoder.encode(dto)
-                
-            case .intro(let deviceName):
-                let dto = IntroDto(id: id, ts: timestamp, a: address, p: deviceName)
-                return try encoder.encode(dto)
-                
-            case .file(let url, let name, let size):
-                let dto = FileDto(id: id, ts: timestamp, a: address, u: url, n: name, s: size)
-                return try encoder.encode(dto)
-            }
-        } catch {
-            Logger.coreModels.error("Decoding error: \(error.localizedDescription). Type: \(self.type.rawValue)")
-            return nil
+        // 1. Type ID (1 byte)
+        data.append(UInt8(self.type.rawValue))
+        
+        // 2. UUID (16 bytes)
+        guard let uuid = UUID(uuidString: id) else { return nil }
+        data.append(uuid.uuidBytes)
+        
+        // 3. Timestamp (8 bytes)
+        data.appendBigEndian(timestamp.bitPattern)
+        
+        // 4. Payload
+        switch content {
+        case .tiny(let text):
+            data.appendS(text)
+            
+        case .intro(let deviceName, let ip, let port):
+            data.appendS(deviceName)
+            data.appendS(ip)
+            data.appendBigEndian(Int32(port))
+            
+        case .blob(let name, let size, let blobType):
+            data.appendS(name)
+            data.appendBigEndian(size)
+            data.appendS(blobType.rawValue)
+            
+        case .chunk(_, let offset, let chunkData):
+            data.appendBigEndian(offset)
+            data.append(chunkData)
         }
+        
+        return data
     }
 
     public static func fromData(_ data: Data, address: String? = nil) throws -> BridgerMessage {
-        let decoder = JSONDecoder()
-
-        let header: BaseBridgerMessageDto
-        do {
-            header = try decoder.decode(BaseBridgerMessageDto.self, from: data)
-        } catch {
-            let rawJson = String(data: data, encoding: .utf8) ?? "Non-UTF8"
-            Logger.coreModels.error("Decoding error: \(error.localizedDescription). Data: \(rawJson)")
-            throw BridgerMessageError.unknownType
+        var offset = 0
+        
+        func read<T>(_ type: T.Type) throws -> T {
+            let size = MemoryLayout<T>.size
+            guard offset + size <= data.count else { throw BridgerMessageError.corruptData }
+            let value = data.subdata(in: offset..<offset + size).withUnsafeBytes { $0.load(as: T.self) }
+            offset += size
+            return value
         }
-
+        
+        func readBigEndian<T: FixedWidthInteger>(_ type: T.Type) throws -> T {
+            return try T(bigEndian: read(T.self))
+        }
+        
+        func readS() throws -> String {
+            let length = Int(try readBigEndian(Int32.self))
+            guard offset + length <= data.count else { throw BridgerMessageError.corruptData }
+            let stringData = data.subdata(in: offset..<offset + length)
+            guard let s = String(data: stringData, encoding: .utf8) else { throw BridgerMessageError.corruptData }
+            offset += length
+            return s
+        }
+        
+        // 1. Type ID
+        let typeId = Int(try read(UInt8.self))
+        guard let type = BridgerMessageType(rawValue: typeId) else { throw BridgerMessageError.unknownType }
+        
+        // 2. UUID
+        let uuidBytes = try data.subdata(in: offset..<offset + 16)
+        offset += 16
+        let id = UUID(uuid: uuidBytes.withUnsafeBytes { $0.load(as: uuid_t.self) }).uuidString
+        
+        // 3. Timestamp
+        let tsBits = try readBigEndian(UInt64.self)
+        let ts = Double(bitPattern: tsBits)
+        
         let now = Date().timeIntervalSince1970
-        if abs(now - header.ts) > 60 {
-            Logger.coreModels.warning("Expired message rejected: \(header.id)")
+        if type != .chunk && abs(now - ts) > 600 {
             throw BridgerMessageError.expired
         }
         
-        switch header.t {
-        case .clipboard:
-            let dto = try decoder.decode(ClipboardDto.self, from: data)
-            return BridgerMessage(
-                content: .clipboard(text: dto.p),
-                address: address ?? dto.a,
-                id: dto.id,
-                timestamp: dto.ts
-            )
-            
+        // 4. Payload
+        let content: BridgerMessageContent
+        switch type {
+        case .tiny:
+            content = .tiny(text: try readS())
         case .intro:
-            let dto = try decoder.decode(IntroDto.self, from: data)
-            return BridgerMessage(
-                content: .intro(deviceName: dto.p),
-                address: address ?? dto.a,
-                id: dto.id,
-                timestamp: dto.ts
-            )
-            
-        case .file:
-            let dto = try decoder.decode(FileDto.self, from: data)
-            return BridgerMessage(
-                content: .file(url: dto.u, name: dto.n, size: dto.s),
-                address: address ?? dto.a,
-                id: dto.id,
-                timestamp: dto.ts
-            )
+            content = .intro(deviceName: try readS(), ip: try readS(), port: Int(try readBigEndian(Int32.self)))
+        case .blob:
+            content = .blob(name: try readS(), size: try readBigEndian(Int64.self), blobType: BlobType(rawValue: try readS()) ?? .file)
+        case .chunk:
+            let chunkOffset = try readBigEndian(Int64.self)
+            let chunkData = data.subdata(in: offset..<data.count)
+            content = .chunk(id: id, offset: chunkOffset, data: chunkData)
         }
+        
+        return BridgerMessage(content: content, address: address, id: id, timestamp: ts)
+    }
+}
+
+private extension Data {
+    mutating func appendBigEndian<T: FixedWidthInteger>(_ value: T) {
+        var val = value.bigEndian
+        Swift.withUnsafeBytes(of: &val) { append(contentsOf: $0) }
+    }
+    
+    mutating func appendS(_ s: String) {
+        let sd = s.data(using: .utf8) ?? Data()
+        appendBigEndian(Int32(sd.count))
+        append(sd)
+    }
+}
+
+private extension UUID {
+    var uuidBytes: Data {
+        var bytes = uuid_t(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
+        withUnsafeMutableBytes(of: &bytes) { uuid_set_bytes(self, $0.baseAddress) }
+        return Data(bytes: &bytes, count: 16)
+    }
+}
+
+private func uuid_set_bytes(_ uuid: UUID, _ bytes: UnsafeMutableRawPointer?) {
+    withUnsafeBytes(of: uuid.uuid) {
+        memcpy(bytes, $0.baseAddress, 16)
     }
 }
 
@@ -126,6 +175,7 @@ public enum BridgerMessageError: Error, LocalizedError {
     case unknownType
     case expired
     case decryptionFailed
+    case corruptData
 
     public var errorDescription: String? {
         switch self {
@@ -135,6 +185,8 @@ public enum BridgerMessageError: Error, LocalizedError {
             return "BridgerMessage is too old or from the future. Possible replay attack."
         case .decryptionFailed:
             return "Failed to decrypt message. Wrong key or corrupt data."
+        case .corruptData:
+            return "Message data is corrupt or incomplete."
         }
     }
 }

@@ -53,6 +53,13 @@ public class ClipboardManager: ClipboardManaging {
         logger.info("Set new text to pasteboard.")
     }
 
+    public func setFile(url: URL) {
+        pasteboard.clearContents()
+        pasteboard.writeObjects([url as NSURL])
+        self.lastChangeCount = pasteboard.changeCount
+        logger.info("Set file URL to pasteboard: \(url.lastPathComponent)")
+    }
+
     // MARK: - Private Methods
 
     private func checkPasteboard() {
@@ -64,11 +71,32 @@ public class ClipboardManager: ClipboardManaging {
         logger.debug("Pasteboard change detected. New changeCount: \(self.pasteboard.changeCount)")
         lastChangeCount = pasteboard.changeCount
 
+        // 1. Check for Files first (NSURL)
+        if let url = pasteboard.readObjects(forClasses: [NSURL.self], options: nil)?.first as? URL, url.isFileURL {
+            logger.info("New file found in pasteboard: \(url.lastPathComponent). Sending blob announcement.")
+            
+            do {
+                let resources = try url.resourceValues(forKeys: [.fileSizeKey])
+                let size = Int64(resources.fileSize ?? 0)
+                
+                // Use file path as 'address' for internal routing in AppLogic
+                let message = BridgerMessage(
+                    content: .blob(name: url.lastPathComponent, size: size, blobType: .file),
+                    address: url.absoluteString
+                )
+                update.send(message)
+                return
+            } catch {
+                logger.error("Failed to read file attributes for \(url.path): \(error.localizedDescription)")
+            }
+        } 
+        
+        // 2. Fallback to Text
         if let newText = pasteboard.string(forType: .string) {
             logger.info("New text found in pasteboard. Sending message.")
-            update.send(BridgerMessage(content: .clipboard(text: newText)))
+            update.send(BridgerMessage(content: .tiny(text: newText)))
         } else {
-            logger.warning("Pasteboard changed, but no string content found.")
+            logger.warning("Pasteboard changed, but no supported content found.")
         }
     }
 }

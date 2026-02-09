@@ -12,7 +12,7 @@ class MockClipboardManager: ClipboardManaging {
             queue: .main
         ) { [weak self] notification in
             guard let text = notification.object as? String else { return }
-            self?.update.send(BridgerMessage(content: .clipboard(text: text)))
+            self?.update.send(BridgerMessage(content: .tiny(text: text)))
         }
     }
 
@@ -25,6 +25,10 @@ class MockClipboardManager: ClipboardManaging {
             userInfo: nil,
             deliverImmediately: true
         )
+    }
+
+    func setFile(url: URL) {
+        print("Mock Clipboard Set File: \(url.lastPathComponent)")
     }
 }
 #endif
