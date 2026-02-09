@@ -1,7 +1,7 @@
 import Foundation
 import OSLog
 
-public enum BridgerMessageContent {
+public enum BridgerMessageContent: Sendable {
     case tiny(text: String)
     case intro(deviceName: String, ip: String, port: Int)
     case blob(name: String, size: Int64, blobType: BlobType)
@@ -18,7 +18,7 @@ public enum BridgerMessageContent {
     }
 }
 
-public struct BridgerMessage: Identifiable {
+public struct BridgerMessage: Identifiable, Sendable {
     public let id: String
     public let timestamp: Double
     public var address: String?
@@ -121,7 +121,7 @@ extension BridgerMessage {
         let ts = Double(bitPattern: tsBits)
         
         let now = Date().timeIntervalSince1970
-        if type != .chunk && abs(now - ts) > 600 {
+        if type != .chunk && abs(now - ts) > 60 {
             throw BridgerMessageError.expired
         }
         

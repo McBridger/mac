@@ -56,6 +56,17 @@ public final class MockBLEDriver: BLEDriverProtocol, @unchecked Sendable {
                 self.simulateIntroduction(id: id)
             }
         }
+
+        DistributedNotificationCenter.default().addObserver(
+            forName: TestNotification.simulateIncomingTiny.name,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let self = self else { return }
+            let id = self.requireID(from: notification)
+            let text = self.requirePayloadString(from: notification)
+            self.simulateIncomingTiny(id: id, text: text)
+        }
         
         DistributedNotificationCenter.default().addObserver(
             forName: TestNotification.receiveData.name,
@@ -85,6 +96,21 @@ public final class MockBLEDriver: BLEDriverProtocol, @unchecked Sendable {
             preconditionFailure("❌ MockBLEDriver: Notification missing valid 'payload' (hex) in JSON payload. Got: \(String(describing: notification.object))")
         }
         return payload
+    }
+
+    private func requirePayloadString(from notification: Notification) -> String {
+        guard let dict = notification.testPayload,
+              let payload = dict["payload"] as? String else {
+            preconditionFailure("❌ MockBLEDriver: Notification missing 'payload' string in JSON payload.")
+        }
+        return payload
+    }
+
+    private func simulateIncomingTiny(id: UUID, text: String) {
+        let message = BridgerMessage(content: .tiny(text: text))
+        if let data = message.toData() {
+            self.continuation.yield(.didReceiveData(data, from: id))
+        }
     }
 
     private func simulateIntroduction(id: UUID) {

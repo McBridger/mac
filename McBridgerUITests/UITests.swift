@@ -186,18 +186,9 @@ final class UITests: XCTestCase {
         // 2. Test Incoming: Remote -> Mac Clipboard
         let incomingText = "Hello from Android!"
 
-        // Use proper TransferMessage DTO for type safety
-        let transferMessage = ClipboardDto(
-            t: .clipboard,
-            id: UUID().uuidString,
-            ts: Date().timeIntervalSince1970,
-            a: UUID().uuidString,
-            p: incomingText,
-        )
-        let jsonData = try! JSONEncoder().encode(transferMessage)
-        let hexString = jsonData.hexString
-
-        postMockNotification(.receiveData, id: deviceID, payload: hexString)
+        // Use high-level mock command to trigger incoming text
+        // This avoids linking against 'BridgerMessage' in UI tests
+        postMockNotification(.simulateIncomingTiny, id: deviceID, payload: incomingText)
 
         // Verify history UI update
         let historyItem = app.descendants(matching: .any)["history_item_\(incomingText)"]

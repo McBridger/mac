@@ -65,7 +65,8 @@ final class MessageTests: XCTestCase {
 
     func testReplayProtection() throws {
         // Create a message from the "future" (invalid)
-        let futureDate = Date().addingTimeInterval(120) // +2 minutes
+        // Window is 60s, so using 120s to trigger expiration
+        let futureDate = Date().addingTimeInterval(120)
         let message = BridgerMessage(content: .tiny(text: "Old Data"), timestamp: futureDate.timeIntervalSince1970)
         
         guard let data = message.toData() else {
@@ -73,9 +74,28 @@ final class MessageTests: XCTestCase {
             return
         }
         
-        // Should throw .expiredMessage
+        // Should throw .expired
         XCTAssertThrowsError(try BridgerMessage.fromData(data)) { error in
             XCTAssertEqual(error as? BridgerMessageError, .expired)
         }
+    }
+
+    func testChunkReplayProtectionSkip() throws {
+        // Chunk timestamps are ignored (often 0.0 in Kotlin)
+        let oldDate = Date(timeIntervalSince1970: 0)
+        let id = UUID().uuidString
+        let message = BridgerMessage(
+            content: .chunk(id: id, offset: 0, data: Data()),
+            id: id,
+            timestamp: oldDate.timeIntervalSince1970
+        )
+        
+        guard let data = message.toData() else {
+            XCTFail("Failed to serialize message")
+            return
+        }
+        
+        // Should NOT throw .expired despite being 50+ years old
+        XCTAssertNoThrow(try BridgerMessage.fromData(data))
     }
 }
