@@ -6,7 +6,8 @@ struct MenuBarView: View {
 
     var body: some View {
         Group {
-            if viewModel.state == .idle || viewModel.state == .encrypting {
+            let encState = viewModel.state.encryption.current
+            if encState == .idle || encState == .encrypting {
                 SetupRequiredView(onSetupAction: onSetupAction)
             } else {
                 MenuBarContentView()

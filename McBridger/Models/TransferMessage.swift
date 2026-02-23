@@ -8,10 +8,12 @@ public enum BridgerMessageType: Int, Codable, Sendable {
     case intro = 1
     case blob = 2
     case chunk = 3
+    case ping = 4
 }
 
-public enum BlobType: String, Codable {
-    case file = "FILE"
-    case text = "TEXT"
-    case image = "IMAGE"
+public enum EncryptionState: String, Codable, Sendable, Equatable {
+    case idle = "IDLE"
+    case encrypting = "ENCRYPTING"
+    case keysReady = "KEYS_READY"
+    case error = "ERROR"
 }

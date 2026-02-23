@@ -4,7 +4,7 @@ import CoreBluetooth
 
 public protocol BluetoothManaging: AnyObject, Sendable {
     var power: CurrentValueSubject<BluetoothPowerState, Never> { get }
-    var connection: CurrentValueSubject<ConnectionState, Never> { get }
+    var connection: CurrentValueSubject<BleState, Never> { get }
     var devices: CurrentValueSubject<[DeviceInfo], Never> { get }
     var data: PassthroughSubject<(data: Data, from: String), Never> { get }
 

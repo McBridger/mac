@@ -1,11 +1,10 @@
-import Foundation
-import OSLog
 import UserNotifications
+import OSLog
 
-class NotificationService {
+public final class NotificationService: NotificationServing {
     private let logger = Logger(subsystem: "com.mcbridger.Service", category: "Notification")
 
-    func showNotification(title: String, body: String) {
+    public func showNotification(title: String, body: String) {
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body

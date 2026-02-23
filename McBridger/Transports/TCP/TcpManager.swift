@@ -9,18 +9,29 @@ public actor TcpManager: TcpManaging {
     
     @Injected(\.encryptionService) private var encryptionService: EncryptionServing
     
-    nonisolated public let state = CurrentValueSubject<TcpConnectionState, Never>(.idle)
+    nonisolated public let state = CurrentValueSubject<TcpState, Never>(.idle)
     nonisolated public let messages = PassthroughSubject<BridgerMessage, Never>()
     
     private var listener: NWListener?
     private var activeConnections: [UUID: NWConnection] = [:]
-
+    
     public init() {
-        logger.info("--- TcpManager: Initializing background instance ---")
+        logger.info("--- TcpManager: Initializing instance ---")
     }
 
     public func start(port: Int) async throws {
-        let parameters = Network.NWParameters.tcp
+        guard listener == nil else {
+            logger.warning("TCP Listener already active on port \(port). Ignoring.")
+            return
+        }
+        
+        let tcpOptions = NWProtocolTCP.Options()
+        tcpOptions.enableKeepalive = true
+        tcpOptions.keepaliveIdle = 10
+        tcpOptions.keepaliveInterval = 5
+        tcpOptions.keepaliveCount = 3
+        
+        let parameters = NWParameters(tls: nil, tcp: tcpOptions)
         let listener = try Network.NWListener(using: parameters, on: Network.NWEndpoint.Port(rawValue: UInt16(port))!)
         
         listener.stateUpdateHandler = { [weak self] (newState: Network.NWListener.State) in
@@ -53,7 +64,7 @@ public actor TcpManager: TcpManaging {
     private func onListenerStateUpdate(_ newState: Network.NWListener.State, port: Int) {
         switch newState {
         case .ready:
-            state.send(.listening(port: port))
+            state.send(.ready)
         case .failed(let error):
             state.send(.error(error.localizedDescription))
         default:
@@ -78,12 +89,15 @@ public actor TcpManager: TcpManaging {
         switch newState {
         case .ready:
             self.logger.info("TCP Connection ready: \(String(describing: connection.endpoint))")
+            state.send(.connected(remoteAddress: String(describing: connection.endpoint)))
             self.receiveLoop(connection, id: id)
         case .failed(let error):
             self.logger.error("TCP Connection failed: \(error.localizedDescription)")
             self.activeConnections.removeValue(forKey: id)
+            state.send(.ready)
         case .cancelled:
             self.activeConnections.removeValue(forKey: id)
+            state.send(.ready)
         default:
             break
         }
@@ -144,6 +158,13 @@ public actor TcpManager: TcpManaging {
     private func handleRawData(_ data: Data, address: String) {
         do {
             let message = try BridgerMessage.fromData(data)
+            if case .ping = message.content {
+                logger.debug("Received TCP Ping from \(address), echoing back")
+                Task {
+                    try? await self.send(BridgerMessage(content: .ping))
+                }
+                return
+            }
             messages.send(message)
         } catch {
             logger.error("Failed to deserialize TCP message: \(error.localizedDescription)")
@@ -187,6 +208,7 @@ public actor TcpManager: TcpManaging {
                             let fileHandle = try FileHandle(forReadingFrom: url)
                             let chunkSize = 64 * 1024 // 64KB
                             var offset: Int64 = 0
+                            let totalSize = message.content.blobSize ?? 0
                             
                             while true {
                                 guard let data = try fileHandle.read(upToCount: chunkSize), !data.isEmpty else {
@@ -199,10 +221,16 @@ public actor TcpManager: TcpManaging {
                                 )
                                 try await self.sendFrame(chunkMessage, over: connection)
                                 offset += Int64(data.count)
+                                
+                                if totalSize > 0 {
+                                    let progress = Double(offset) / Double(totalSize)
+                                    self.state.send(.transferring(progress: progress))
+                                }
                             }
                             
                             try fileHandle.close()
                             connection.cancel()
+                            self.state.send(.ready)
                             continuation.resume()
                             await self.logInfo("Successfully streamed blob \(message.id) to \(host)")
                         } catch {

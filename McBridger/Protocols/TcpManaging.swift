@@ -1,15 +1,17 @@
 import Foundation
 import Combine
 
-public enum TcpConnectionState: Sendable {
+public enum TcpState: Equatable, Sendable {
     case idle
-    case listening(port: Int)
+    case ready
+    case pinging
     case connected(remoteAddress: String)
+    case transferring(progress: Double)
     case error(String)
 }
 
 public protocol TcpManaging: AnyObject, Sendable {
-    var state: CurrentValueSubject<TcpConnectionState, Never> { get }
+    var state: CurrentValueSubject<TcpState, Never> { get }
     var messages: PassthroughSubject<BridgerMessage, Never> { get }
     
     func start(port: Int) async throws

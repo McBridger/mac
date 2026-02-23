@@ -11,7 +11,7 @@ public actor BluetoothManager: BluetoothManaging {
     
     // --- 1. PUBLIC PIPES (UI Read-only) ---
     nonisolated public let power = CurrentValueSubject<BluetoothPowerState, Never>(.poweredOff)
-    nonisolated public let connection = CurrentValueSubject<ConnectionState, Never>(.disconnected)
+    nonisolated public let connection = CurrentValueSubject<BleState, Never>(.disconnected)
     nonisolated public let devices = CurrentValueSubject<[DeviceInfo], Never>([])
     nonisolated public let data = PassthroughSubject<(data: Data, from: String), Never>()
 
@@ -46,6 +46,11 @@ public actor BluetoothManager: BluetoothManaging {
 
     // --- 4. PUBLIC API ---
     public func start(advertise: Data, service: Data, characteristic: Data) {
+        guard !state.isAdvertising else {
+            logger.info("BluetoothManager: Already advertising. Ignoring.")
+            return
+        }
+        
         logger.info("➡️ BluetoothManager: Start requested.")
         let config = BLEConfig(
             advertise: advertise,
@@ -184,7 +189,7 @@ public actor BluetoothManager: BluetoothManaging {
         if power.value != newPower { power.send(newPower) }
         
         // 2. Connection State
-        let newConn: ConnectionState
+        let newConn: BleState
         if !state.isPoweredOn {
             newConn = .disconnected
         } else if !state.connections.isEmpty {

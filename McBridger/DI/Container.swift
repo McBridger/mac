@@ -31,8 +31,8 @@ extension Container {
         self { AppConfig() }.singleton
     }
 
-    var appLogic: Factory<AppLogic> {
-        self { AppLogic() }.singleton
+    var broker: Factory<Broker> {
+        self { Broker() }.singleton
     }
 
     var blobStorageManager: Factory<BlobStorageManaging> {
@@ -41,5 +41,21 @@ extension Container {
 
     var tcpManager: Factory<TcpManaging> {
         self { TcpManager() }.singleton
+    }
+    
+    var lifecycleObserver: Factory<AppLifecycleObserving> {
+        self { LifecycleObserver() }.singleton
+    }
+    
+    var systemObserver: Factory<SystemObserving> {
+        self { SystemObserver(lifecycle: self.lifecycleObserver()) }.singleton
+    }
+    
+    var wakeManager: Factory<WakeManaging> {
+        self { WakeManager() }.singleton
+    }
+    
+    var historyManager: Factory<HistoryManaging> {
+        self { HistoryManager() }.singleton
     }
 }

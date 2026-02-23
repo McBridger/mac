@@ -43,7 +43,8 @@ struct SecurityView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                if viewModel.state == .idle || viewModel.state == .encrypting {
+                let encState = viewModel.state.encryption.current
+                if encState == .idle || encState == .encrypting {
                     SetupSectionView(words: $words) { mnemonic in
                         viewModel.setup(mnemonic: mnemonic)
                         words = Array(repeating: "", count: mnemonicLength)
@@ -179,7 +180,7 @@ struct AboutView: View {
 // MARK: - PREVIEWS
 
 #Preview("Full Window") {
-    let _ = Container.shared.appLogic.register { AppLogic() }
+    let _ = Container.shared.broker.register { Broker() }
     SettingsView(viewModel: AppViewModel())
 }
 

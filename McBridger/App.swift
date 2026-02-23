@@ -6,7 +6,7 @@ struct bridgeApp: App {
     @Environment(\.openSettings) private var openSettings   
     
     init() {
-        Container.shared.appLogic().bootstrap()
+        Container.shared.broker().bootstrap()
     }
     
     var body: some Scene {
@@ -31,7 +31,7 @@ struct bridgeApp: App {
     }
     
     private func handleStateChange(_ state: BrokerState) {
-        if state == .idle {
+        if state == BrokerState.idle {
             NSApp.elevate()
             openSettings()
         }

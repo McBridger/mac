@@ -25,67 +25,75 @@ struct MenuBarContentView: View {
             // Status Info
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
-                    Text("Bluetooth:")
+                    Text("Transport:")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
-                    Text(model.bluetoothPowerState.rawValue)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(model.bluetoothPowerState == .poweredOn ? .green : .red)
-                }
-                
-                HStack {
-                    Text("Connection:")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                    Text(model.connectionState.rawValue)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .accessibilityIdentifier("connection_status_text")
-                        .accessibilityValue(model.connectionState.rawValue)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("BLE: \(model.bleState.rawValue)")
+                            .font(.caption)
+                            .foregroundColor(model.bleState == .connected ? .green : .secondary)
+                        
+                        Text("TCP: \(tcpStatusText)")
+                            .font(.caption)
+                            .foregroundColor(tcpStatusColor)
+                    }
                 }
             }
             
-            Divider()
-            
-            // Devices Section
-            VStack(alignment: .leading, spacing: 8) {
-                Text("CONNECTED DEVICES")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(.secondary)
-                
-                if model.connectedDevices.isEmpty {
-                    Text("Searching for Android devices...")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                        .italic()
-                        .padding(.vertical, 4)
-                } else {
-                    ForEach(model.connectedDevices) { device in
-                        ConnectedDeviceRow(device: device)
+            // Active Transfers
+            if !model.activePorters.isEmpty {
+                Divider()
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("ACTIVE TRANSFERS")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.secondary)
+                    
+                    ForEach(model.activePorters) { porter in
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Image(systemName: porter.isOutgoing ? "arrow.up.circle.fill" : "arrow.down.circle.fill")
+                                    .foregroundColor(porter.isOutgoing ? .blue : .green)
+                                Text(porter.name)
+                                    .font(.caption)
+                                    .lineLimit(1)
+                                Spacer()
+                                Text("\(Int(porter.progress * 100))%")
+                                    .font(.system(size: 9, weight: .bold))
+                            }
+                            ProgressView(value: porter.progress)
+                                .progressViewStyle(.linear)
+                                .controlSize(.small)
+                        }
                     }
                 }
             }
             
             Divider()
             
-            // Clipboard History Section
+            // History Section
             VStack(alignment: .leading, spacing: 8) {
                 Text("RECENT HISTORY")
                     .font(.system(size: 10, weight: .bold))
                     .foregroundColor(.secondary)
                 
-                if model.clipboardHistory.isEmpty {
+                if model.historyPorters.isEmpty {
                     Text("No history yet")
                         .font(.caption)
                         .foregroundColor(.gray)
                 } else {
-                    ForEach(model.clipboardHistory, id: \.self) { item in
-                        Text(item)
-                            .font(.caption)
-                            .lineLimit(1)
-                            .padding(.vertical, 2)
-                            .accessibilityIdentifier("history_item_\(item)")
+                    ForEach(model.historyPorters.prefix(5)) { porter in
+                        HStack {
+                            Image(systemName: porter.isOutgoing ? "arrow.up.circle" : "arrow.down.circle")
+                                .font(.system(size: 10))
+                            Text(porter.name)
+                                .font(.caption)
+                                .lineLimit(1)
+                            Spacer()
+                            Text(porter.status == .completed ? "Done" : "Error")
+                                .font(.system(size: 8))
+                                .foregroundColor(porter.status == .completed ? .green : .red)
+                        }
+                        .padding(.vertical, 1)
                     }
                 }
             }
@@ -107,9 +115,24 @@ struct MenuBarContentView: View {
         .padding(16)
         .frame(width: 280)
     }
-}
-
-#Preview {
-    MenuBarContentView()
-        .environmentObject(AppViewModel())
+    
+    private var tcpStatusText: String {
+        switch model.tcpState {
+        case .idle: return "Idle"
+        case .ready: return "Ready"
+        case .connected(let addr): return "Connected (\(addr))"
+        case .transferring(let p): return "Transferring (\(Int(p*100))%)"
+        case .error(let err): return "Error: \(err)"
+        case .pinging: return "Pinging..."
+        }
+    }
+    
+    private var tcpStatusColor: Color {
+        switch model.tcpState {
+        case .idle: return .secondary
+        case .ready: return .blue
+        case .connected, .transferring, .pinging: return .green
+        case .error: return .red
+        }
+    }
 }

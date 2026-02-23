@@ -4,11 +4,11 @@ import Foundation
 
 final class MockTcpManager: TcpManaging, @unchecked Sendable {
     let messages = PassthroughSubject<BridgerMessage, Never>()
-    let state = CurrentValueSubject<TcpConnectionState, Never>(.idle)
+    let state = CurrentValueSubject<TcpState, Never>(.idle)
 
     func start(port: Int) async throws {
         print("Mock TCP Manager: Started listening on port \(port)")
-        state.send(.listening(port: port))
+        state.send(.ready)
     }
 
     func stop() async {
@@ -29,6 +29,10 @@ final class MockTcpManager: TcpManaging, @unchecked Sendable {
             userInfo: nil,
             deliverImmediately: true
         )
+    }
+    
+    func toggleWatchdog(active: Bool) async {
+        print("Mock TCP Manager: Watchdog toggled to \(active)")
     }
 }
 #endif

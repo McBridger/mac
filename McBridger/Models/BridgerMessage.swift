@@ -6,6 +6,7 @@ public enum BridgerMessageContent: Sendable {
     case intro(deviceName: String, ip: String, port: Int)
     case blob(name: String, size: Int64, blobType: BlobType)
     case chunk(id: String, offset: Int64, data: Data)
+    case ping
     
     public var text: String? {
         if case .tiny(let text) = self { return text }
@@ -14,6 +15,11 @@ public enum BridgerMessageContent: Sendable {
     
     public var device: String? {
         if case .intro(let name, _, _) = self { return name }
+        return nil
+    }
+
+    public var blobSize: Int64? {
+        if case .blob(_, let size, _) = self { return size }
         return nil
     }
 }
@@ -42,6 +48,7 @@ public struct BridgerMessage: Identifiable, Sendable {
             case .intro: return .intro
             case .blob: return .blob
             case .chunk: return .chunk
+            case .ping: return .ping
         }
     }
 }
@@ -78,6 +85,9 @@ extension BridgerMessage {
         case .chunk(_, let offset, let chunkData):
             data.appendBigEndian(offset)
             data.append(chunkData)
+            
+        case .ping:
+            break
         }
         
         return data
@@ -138,6 +148,8 @@ extension BridgerMessage {
             let chunkOffset = try readBigEndian(Int64.self)
             let chunkData = data.subdata(in: offset..<data.count)
             content = .chunk(id: id, offset: chunkOffset, data: chunkData)
+        case .ping:
+            content = .ping
         }
         
         return BridgerMessage(content: content, address: address, id: id, timestamp: ts)
