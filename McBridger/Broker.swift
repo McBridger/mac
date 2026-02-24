@@ -132,11 +132,10 @@ public final class Broker: @unchecked Sendable {
                 }
                 sendIntro()
             } else {
-                self.logger.warning("Partner sent empty intro. Resetting TCP.")
+                self.logger.warning("Partner sent empty intro. Disconnecting current session.")
                 self.partnerTcpTarget = nil
                 Task {
-                    await self.tcpService.stop()
-                    try? await self.tcpService.start(port: 41492)
+                    await self.tcpService.disconnect()
                 }
             }
 

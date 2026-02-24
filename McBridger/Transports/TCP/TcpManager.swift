@@ -58,7 +58,14 @@ public actor TcpManager: TcpManaging {
         listener?.cancel()
         listener = nil
         disconnectInternal()
-        state.send(.idle)
+        // Here we force state to idle because the listener is explicitly stopped
+        if state.value != .idle {
+            state.send(.idle)
+        }
+    }
+
+    public func disconnect() async {
+        disconnectInternal()
     }
 
     private func disconnectInternal() {
