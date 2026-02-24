@@ -8,6 +8,7 @@ public final class SystemObserver: SystemObserving, @unchecked Sendable {
     
     public let isForeground = CurrentValueSubject<Bool, Never>(true)
     public let isNetworkHighSpeed = CurrentValueSubject<Bool, Never>(false)
+    public let localIpAddress = CurrentValueSubject<String?, Never>(nil)
     
     private let monitor = NWPathMonitor()
     private var cancellables = Set<AnyCancellable>()
@@ -30,6 +31,12 @@ public final class SystemObserver: SystemObserving, @unchecked Sendable {
             if self?.isNetworkHighSpeed.value != isHighSpeed {
                 self?.isNetworkHighSpeed.send(isHighSpeed)
                 self?.logger.info("Network speed state changed: \(isHighSpeed ? "HIGH" : "LOW")")
+            }
+            
+            let currentIp = isHighSpeed ? NetworkUtils.getLocalIPv4Address() : nil
+            if self?.localIpAddress.value != currentIp {
+                self?.localIpAddress.send(currentIp)
+                self?.logger.info("Local IP address changed: \(currentIp ?? "nil")")
             }
         }
         monitor.start(queue: DispatchQueue(label: "com.mcbridger.network-monitor"))

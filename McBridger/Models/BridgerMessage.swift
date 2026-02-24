@@ -3,7 +3,7 @@ import OSLog
 
 public enum BridgerMessageContent: Sendable {
     case tiny(text: String)
-    case intro(deviceName: String, ip: String, port: Int)
+    case intro(deviceName: String, ip: String?, port: Int?)
     case blob(name: String, size: Int64, blobType: BlobType)
     case chunk(id: String, offset: Int64, data: Data)
     case ping
@@ -74,8 +74,8 @@ extension BridgerMessage {
             
         case .intro(let deviceName, let ip, let port):
             data.appendS(deviceName)
-            data.appendS(ip)
-            data.appendBigEndian(Int32(port))
+            data.appendS(ip ?? "")
+            data.appendBigEndian(Int32(port ?? -1))
             
         case .blob(let name, let size, let blobType):
             data.appendS(name)
@@ -141,7 +141,14 @@ extension BridgerMessage {
         case .tiny:
             content = .tiny(text: try readS())
         case .intro:
-            content = .intro(deviceName: try readS(), ip: try readS(), port: Int(try readBigEndian(Int32.self)))
+            let deviceName = try readS()
+            let ipStr = try readS()
+            let portVal = Int(try readBigEndian(Int32.self))
+            content = .intro(
+                deviceName: deviceName, 
+                ip: ipStr.isEmpty ? nil : ipStr, 
+                port: portVal == -1 ? nil : portVal
+            )
         case .blob:
             content = .blob(name: try readS(), size: try readBigEndian(Int64.self), blobType: BlobType(rawValue: try readS()) ?? .file)
         case .chunk:

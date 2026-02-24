@@ -123,7 +123,6 @@ struct MenuBarContentView: View {
         case .connected(let addr): return "Connected (\(addr))"
         case .transferring(let p): return "Transferring (\(Int(p*100))%)"
         case .error(let err): return "Error: \(err)"
-        case .pinging: return "Pinging..."
         }
     }
     
@@ -131,7 +130,7 @@ struct MenuBarContentView: View {
         switch model.tcpState {
         case .idle: return .secondary
         case .ready: return .blue
-        case .connected, .transferring, .pinging: return .green
+        case .connected, .transferring: return .green
         case .error: return .red
         }
     }

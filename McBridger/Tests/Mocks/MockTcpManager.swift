@@ -19,6 +19,10 @@ final class MockTcpManager: TcpManaging, @unchecked Sendable {
     func send(_ message: BridgerMessage) async throws {
         print("Mock TCP Manager: Sending message \(message.id)")
     }
+    
+    func forcePing() async throws {
+        print("Mock forced ping")
+    }
 
     func sendBlob(_ message: BridgerMessage, url: URL, to host: String, port: Int) async throws {
         print("Mock TCP Manager: Sending blob \(message.id) to \(host):\(port)")

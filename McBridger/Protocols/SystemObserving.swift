@@ -8,4 +8,5 @@ public protocol AppLifecycleObserving: Sendable {
 public protocol SystemObserving: Sendable {
     var isForeground: CurrentValueSubject<Bool, Never> { get }
     var isNetworkHighSpeed: CurrentValueSubject<Bool, Never> { get }
+    var localIpAddress: CurrentValueSubject<String?, Never> { get }
 }

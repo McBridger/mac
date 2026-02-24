@@ -13,7 +13,10 @@ public actor TcpManager: TcpManaging {
     nonisolated public let messages = PassthroughSubject<BridgerMessage, Never>()
     
     private var listener: NWListener?
-    private var activeConnections: [UUID: NWConnection] = [:]
+    private var activeConnection: NWConnection?
+    private var outboundStream: AsyncStream<BridgerMessage>?
+    private var outboundContinuation: AsyncStream<BridgerMessage>.Continuation?
+    private var pendingPings: [String: CheckedContinuation<Void, Error>] = [:]
     
     public init() {
         logger.info("--- TcpManager: Initializing instance ---")
@@ -54,11 +57,29 @@ public actor TcpManager: TcpManaging {
     public func stop() async {
         listener?.cancel()
         listener = nil
-        for connection in activeConnections.values {
-            connection.cancel()
-        }
-        activeConnections.removeAll()
+        disconnectInternal()
         state.send(.idle)
+    }
+
+    private func disconnectInternal() {
+        activeConnection?.cancel()
+        activeConnection = nil
+        outboundContinuation?.finish()
+        outboundContinuation = nil
+        outboundStream = nil
+        
+        for (_, continuation) in pendingPings {
+            continuation.resume(throwing: CancellationError())
+        }
+        pendingPings.removeAll()
+        
+        if state.value != .idle {
+            if listener != nil {
+                state.send(.ready)
+            } else {
+                state.send(.idle)
+            }
+        }
     }
 
     private func onListenerStateUpdate(_ newState: Network.NWListener.State, port: Int) {
@@ -73,61 +94,86 @@ public actor TcpManager: TcpManaging {
     }
 
     private func handleNewConnection(_ connection: Network.NWConnection) {
-        let id = UUID()
-        activeConnections[id] = connection
-        
-        connection.stateUpdateHandler = { [weak self] (newState: Network.NWConnection.State) in
-            guard let self = self else { return }
-            Task {
-                await self.onConnectionStateUpdate(newState, connection: connection, id: id)
-            }
-        }
-        connection.start(queue: .global())
+        setupActiveConnection(connection)
     }
 
-    private func onConnectionStateUpdate(_ newState: Network.NWConnection.State, connection: Network.NWConnection, id: UUID) {
+    private func setupActiveConnection(_ connection: Network.NWConnection) {
+        disconnectInternal()
+        
+        activeConnection = connection
+        
+        let (stream, continuation) = AsyncStream.makeStream(of: BridgerMessage.self, bufferingPolicy: .bufferingNewest(64))
+        outboundStream = stream
+        outboundContinuation = continuation
+        
+        connection.stateUpdateHandler = { [weak self] newState in
+            guard let self = self else { return }
+            Task { await self.onConnectionStateUpdate(newState, connection: connection) }
+        }
+        connection.start(queue: .global())
+        
+        Task { await self.writeLoop(connection: connection, stream: stream) }
+    }
+
+    private func onConnectionStateUpdate(_ newState: Network.NWConnection.State, connection: Network.NWConnection) {
+        guard activeConnection === connection else { return }
         switch newState {
         case .ready:
             self.logger.info("TCP Connection ready: \(String(describing: connection.endpoint))")
             state.send(.connected(remoteAddress: String(describing: connection.endpoint)))
-            self.receiveLoop(connection, id: id)
+            self.receiveLoop(connection)
         case .failed(let error):
             self.logger.error("TCP Connection failed: \(error.localizedDescription)")
-            self.activeConnections.removeValue(forKey: id)
-            state.send(.ready)
+            self.disconnectInternal()
         case .cancelled:
-            self.activeConnections.removeValue(forKey: id)
-            state.send(.ready)
+            self.disconnectInternal()
         default:
             break
         }
     }
 
-    private func receiveLoop(_ connection: Network.NWConnection, id: UUID) {
-        // Read 4 bytes length prefix
+    private func writeLoop(connection: NWConnection, stream: AsyncStream<BridgerMessage>) async {
+        for await message in stream {
+            if connection.state != .ready && connection.state != .preparing { break }
+            do {
+                try await sendFrame(message, over: connection)
+            } catch {
+                logger.error("WriteLoop failed: \(error.localizedDescription)")
+                disconnectInternal()
+                break
+            }
+        }
+    }
+
+    private func receiveLoop(_ connection: Network.NWConnection) {
         connection.receive(minimumIncompleteLength: 4, maximumLength: 4) { [weak self] data, _, isComplete, error in
             guard let self = self else { return }
             
             Task {
+                guard await self.activeConnection === connection else { return }
+                
                 if let error = error {
-                    await self.logError("Receive length error: \(error.localizedDescription)")
+                    self.logger.error("Receive length error: \(error.localizedDescription)")
+                    await self.disconnectInternal()
                     return
                 }
                 
                 guard let data = data, data.count == 4 else {
-                    if isComplete { await self.removeConnection(id: id) }
+                    if isComplete { await self.disconnectInternal() }
                     return
                 }
                 
                 let length = Int(data.withUnsafeBytes { $0.load(as: UInt32.self).bigEndian })
                 
-                // Read payload
                 connection.receive(minimumIncompleteLength: length, maximumLength: length) { [weak self] data, _, isComplete, error in
                     guard let self = self else { return }
                     
                     Task {
+                        guard await self.activeConnection === connection else { return }
+                        
                         if let error = error {
-                            await self.logError("Receive payload error: \(error.localizedDescription)")
+                            self.logger.error("Receive payload error: \(error.localizedDescription)")
+                            await self.disconnectInternal()
                             return
                         }
                         
@@ -137,116 +183,130 @@ public actor TcpManager: TcpManaging {
                         }
                         
                         if !isComplete {
-                            await self.receiveLoop(connection, id: id)
+                            await self.receiveLoop(connection)
                         } else {
-                            await self.removeConnection(id: id)
+                            await self.disconnectInternal()
                         }
                     }
                 }
             }
         }
-    }
-
-    private func removeConnection(id: UUID) {
-        activeConnections.removeValue(forKey: id)
-    }
-
-    private func logError(_ message: String) {
-        logger.error("\(message)")
     }
 
     private func handleRawData(_ data: Data, address: String) {
         do {
             let message = try BridgerMessage.fromData(data)
             if case .ping = message.content {
-                logger.debug("Received TCP Ping from \(address), echoing back")
-                Task {
-                    try? await self.send(BridgerMessage(content: .ping))
+                logger.debug("Received TCP Ping from \(address)")
+                if let continuation = pendingPings.removeValue(forKey: message.id) {
+                    continuation.resume()
+                } else {
+                    outboundContinuation?.yield(BridgerMessage(content: .ping, id: message.id))
                 }
                 return
             }
+            
+            let prevState = state.value
+            if case .transferring = prevState {} else {
+                state.send(.transferring(progress: 0))
+            }
+            
             messages.send(message)
+            
+            if case .transferring = prevState {} else {
+                state.send(.connected(remoteAddress: address))
+            }
+            
         } catch {
             logger.error("Failed to deserialize TCP message: \(error.localizedDescription)")
         }
     }
 
-    public func send(_ message: BridgerMessage) async throws {
-        guard let payload = message.toData() else { return }
+    public func forcePing() async throws {
+        let currentState = state.value
+        if case .transferring = currentState { return }
         
-        var frame = Data()
-        var length = UInt32(payload.count).bigEndian
-        withUnsafeBytes(of: &length) { frame.append(contentsOf: $0) }
-        frame.append(payload)
+        guard case .connected = currentState else {
+            throw BridgerMessageError.corruptData
+        }
         
-        for connection in activeConnections.values {
-            connection.send(content: frame, completion: .contentProcessed({ [weak self] error in
-                if let error = error {
-                    Task { [weak self] in
-                        await self?.logError("TCP send error: \(error.localizedDescription)")
-                    }
+        guard let outStream = outboundContinuation else {
+            throw BridgerMessageError.corruptData
+        }
+        
+        let ping = BridgerMessage(content: .ping)
+        
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            group.addTask {
+                try await withCheckedThrowingContinuation { (c: CheckedContinuation<Void, Error>) in
+                    Task { await self.setPendingPing(id: ping.id, continuation: c) }
+                    outStream.yield(ping)
                 }
-            }))
+            }
+            group.addTask {
+                try await Task.sleep(nanoseconds: 2_000_000_000)
+                throw CancellationError()
+            }
+            
+            do {
+                try await group.next()
+                group.cancelAll()
+            } catch {
+                group.cancelAll()
+                await self.disconnectInternal()
+                throw error
+            }
         }
     }
 
+    private func setPendingPing(id: String, continuation: CheckedContinuation<Void, Error>) {
+        pendingPings[id] = continuation
+    }
+
+    public func send(_ message: BridgerMessage) async throws {
+        outboundContinuation?.yield(message)
+    }
+
     public func sendBlob(_ message: BridgerMessage, url: URL, to host: String, port: Int) async throws {
-        let endpoint = Network.NWEndpoint.hostPort(host: Network.NWEndpoint.Host(host), port: Network.NWEndpoint.Port(rawValue: UInt16(port))!)
-        let connection = Network.NWConnection(to: endpoint, using: .tcp)
+        if activeConnection == nil {
+            let endpoint = Network.NWEndpoint.hostPort(host: Network.NWEndpoint.Host(host), port: Network.NWEndpoint.Port(rawValue: UInt16(port))!)
+            let connection = Network.NWConnection(to: endpoint, using: .tcp)
+            setupActiveConnection(connection)
+        }
         
-        return try await withCheckedThrowingContinuation { continuation in
-            connection.stateUpdateHandler = { [weak self] (newState: Network.NWConnection.State) in
-                guard let self = self else { return }
-                switch newState {
-                case .ready:
-                    Task {
-                        do {
-                            // 1. Send Blob announcement
-                            try await self.sendFrame(message, over: connection)
-                            
-                            // 2. Stream file in chunks
-                            let fileHandle = try FileHandle(forReadingFrom: url)
-                            let chunkSize = 64 * 1024 // 64KB
-                            var offset: Int64 = 0
-                            let totalSize = message.content.blobSize ?? 0
-                            
-                            while true {
-                                guard let data = try fileHandle.read(upToCount: chunkSize), !data.isEmpty else {
-                                    break
-                                }
-                                
-                                let chunkMessage = BridgerMessage(
-                                    content: .chunk(id: message.id, offset: offset, data: data),
-                                    id: message.id
-                                )
-                                try await self.sendFrame(chunkMessage, over: connection)
-                                offset += Int64(data.count)
-                                
-                                if totalSize > 0 {
-                                    let progress = Double(offset) / Double(totalSize)
-                                    self.state.send(.transferring(progress: progress))
-                                }
-                            }
-                            
-                            try fileHandle.close()
-                            connection.cancel()
-                            self.state.send(.ready)
-                            continuation.resume()
-                            await self.logInfo("Successfully streamed blob \(message.id) to \(host)")
-                        } catch {
-                            connection.cancel()
-                            continuation.resume(throwing: error)
-                        }
-                    }
-                case .failed(let error):
-                    continuation.resume(throwing: error)
-                case .cancelled:
-                    break
-                default:
-                    break
+        let prevState = state.value
+        state.send(.transferring(progress: 0))
+        
+        do {
+            outboundContinuation?.yield(message)
+            
+            let fileHandle = try FileHandle(forReadingFrom: url)
+            defer { try? fileHandle.close() }
+            
+            let chunkSize = 64 * 1024
+            var offset: Int64 = 0
+            let totalSize = message.content.blobSize ?? 0
+            
+            while let data = try fileHandle.read(upToCount: chunkSize), !data.isEmpty {
+                let chunkMessage = BridgerMessage(content: .chunk(id: message.id, offset: offset, data: data), id: message.id)
+                outboundContinuation?.yield(chunkMessage)
+                offset += Int64(data.count)
+                
+                if totalSize > 0 {
+                    state.send(.transferring(progress: Double(offset) / Double(totalSize)))
                 }
             }
-            connection.start(queue: .global())
+            logger.info("Blob send finished: \(offset) bytes")
+            
+            if case .transferring = state.value {
+                state.send(prevState)
+            }
+        } catch {
+            logger.error("Blob send failed: \(error.localizedDescription)")
+            if case .transferring = state.value {
+                state.send(prevState)
+            }
+            throw error
         }
     }
 
@@ -269,9 +329,5 @@ public actor TcpManager: TcpManaging {
                 }
             }))
         }
-    }
-
-    private func logInfo(_ message: String) {
-        logger.info("\(message)")
     }
 }

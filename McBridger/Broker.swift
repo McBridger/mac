@@ -83,6 +83,26 @@ public final class Broker: @unchecked Sendable {
                 .receive(on: self.queue)
                 .sink { [weak self] message in self?.onLocalClipboardUpdate(message) }
                 .store(in: &self.cancellables)
+                
+            // 4. Network Watchdog
+            self.systemObserver.localIpAddress
+                .dropFirst()
+                .removeDuplicates()
+                .receive(on: self.queue)
+                .sink { [weak self] ip in
+                    guard let self = self else { return }
+                    if let ip = ip {
+                        self.logger.info("IP restored (\(ip)). Restarting TCP service and notifying partner.")
+                        Task {
+                            try? await self.tcpService.start(port: 41492)
+                            self.sendIntro()
+                        }
+                    } else {
+                        self.logger.warning("IP lost. Stopping TCP and notifying partner.")
+                        Task { await self.tcpService.stop() }
+                        self.sendIntro(forceEmpty: true)
+                    }
+                }.store(in: &self.cancellables)
         }
     }
     
@@ -105,11 +125,20 @@ public final class Broker: @unchecked Sendable {
             notificationService.showNotification(title: "Message Synced", body: text)
 
         case .intro(let deviceName, let ip, let port):
-            self.partnerTcpTarget = (ip, port)
-            if let address = message.address, let uuid = UUID(uuidString: address) {
-                Task { await self.bluetoothService.markDeviceAsIntroduced(id: uuid, name: deviceName) }
+            if let ip = ip, let port = port {
+                self.partnerTcpTarget = (ip, port)
+                if let address = message.address, let uuid = UUID(uuidString: address) {
+                    Task { await self.bluetoothService.markDeviceAsIntroduced(id: uuid, name: deviceName) }
+                }
+                sendIntro()
+            } else {
+                self.logger.warning("Partner sent empty intro. Resetting TCP.")
+                self.partnerTcpTarget = nil
+                Task {
+                    await self.tcpService.stop()
+                    try? await self.tcpService.start(port: 41492)
+                }
             }
-            sendIntro()
 
         case .blob(let name, let size, let blobType):
             let porter = Porter(id: message.id, isOutgoing: false, name: name, type: blobType, totalSize: size)
@@ -311,10 +340,11 @@ public final class Broker: @unchecked Sendable {
         }
     }
 
-    private func sendIntro() {
-        guard let ip = NetworkUtils.getLocalIPv4Address() else { return }
+    private func sendIntro(forceEmpty: Bool = false) {
+        let ip = forceEmpty ? nil : systemObserver.localIpAddress.value
+        let port = ip == nil ? nil : 41492
         let deviceName = Host.current().localizedName ?? "MacBook"
-        let intro = BridgerMessage(content: .intro(deviceName: deviceName, ip: ip, port: 41492))
+        let intro = BridgerMessage(content: .intro(deviceName: deviceName, ip: ip, port: port))
         sendToTransport(intro)
     }
 
