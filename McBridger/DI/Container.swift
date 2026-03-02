@@ -40,7 +40,7 @@ extension Container {
     }
 
     var tcpManager: Factory<TcpManaging> {
-        self { TcpManager() }.singleton
+        self { TcpTransport() }.singleton
     }
     
     var lifecycleObserver: Factory<AppLifecycleObserving> {

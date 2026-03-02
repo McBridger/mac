@@ -1,6 +1,20 @@
 import Foundation
 import OSLog
 
+public enum BlobType: String, Codable, Sendable {
+    case text
+    case file
+    case image
+}
+
+public enum BridgerMessageType: Int, Codable, Sendable {
+    case tiny = 0
+    case intro = 1
+    case blob = 2
+    case chunk = 3
+    case ping = 4
+}
+
 public enum BridgerMessageContent: Sendable {
     case tiny(text: String)
     case intro(deviceName: String, ip: String?, port: Int?)
@@ -214,3 +228,4 @@ extension Logger {
     private static let subsystem = "com.mcbridger.Model"
     static let coreModels = Logger(subsystem: subsystem, category: "Transfer")
 }
+

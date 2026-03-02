@@ -1,11 +1,5 @@
 import Foundation
 
-public enum BlobType: String, Codable, Sendable {
-    case file = "FILE"
-    case text = "TEXT"
-    case image = "IMAGE"
-}
-
 public struct Porter: Identifiable, Codable, Sendable, Equatable {
     public enum Status: String, Codable, Sendable {
         case pending = "PENDING"
