@@ -2,6 +2,7 @@ import Combine
 import Foundation
 import OSLog
 import Network
+import Factory
 
 // MARK: - TcpTransport
 // Lifecycle manager (Control Plane), non-blocking during data transfer
@@ -9,6 +10,8 @@ public final class TcpTransport: TcpManaging {
 
     public let state = CurrentValueSubject<TcpState, Never>(.idle)
     public let messages = PassthroughSubject<BridgerMessage, Never>()
+
+    @Injected(\.encryptionService) private var encryptionService: EncryptionServing
 
     private let serverFactory: TcpServerFactory = { port in
         try await TcpServer.make(port: port)
@@ -90,6 +93,12 @@ public final class TcpTransport: TcpManaging {
 
     private func setupNewSession(_ session: any ITcpSession) async {
         let id = session.id
+        
+        let handshakeSuccess = await executeServerHandshake(session: session)
+        if !handshakeSuccess {
+            await session.disconnect()
+            return
+        }
 
         let stateTask = Task { [weak self] in
             for await sessionState in session.stateUpdates {
@@ -103,7 +112,7 @@ public final class TcpTransport: TcpManaging {
             for await data in session.incomingMessages {
                 guard let self = self else { return }
                 do {
-                    let parsedMessage = try BridgerMessage.fromData(data)
+                    let parsedMessage = try self.encryptionService.decryptMessage(data, address: nil)
                     self.messages.send(parsedMessage)
                 } catch {
                     print("[TcpTransport] Failed to parse BridgerMessage: \(error)")
@@ -124,10 +133,32 @@ public final class TcpTransport: TcpManaging {
         }
     }
 
+    private func executeServerHandshake(session: any ITcpSession) async -> Bool {
+        let timeoutTask = Task {
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            if !Task.isCancelled {
+                await session.disconnect()
+            }
+        }
+        defer { timeoutTask.cancel() }
+
+        var iterator = session.incomingMessages.makeAsyncIterator()
+        guard let firstData = await iterator.next() else { return false }
+
+        guard let msg = try? encryptionService.decryptMessage(firstData, address: nil),
+              case .intro = msg.content else { return false }
+
+        let intro = BridgerMessage(content: .intro(deviceName: "SwiftServer", ip: nil, port: nil))
+        guard let enc = encryptionService.encryptMessage(intro) else { return false }
+        do { try await session.send(enc) } catch { return false }
+
+        return true
+    }
+
     // --- Data Plane Proxies ---
 
     public func send(_ message: BridgerMessage) async throws {
-        guard let data = message.toData() else { return }
+        guard let data = encryptionService.encryptMessage(message) else { return }
         let sessions = await stateActor.getSessions()
         guard !sessions.isEmpty else {
             throw TransportError.notConnected
@@ -155,7 +186,7 @@ public final class TcpTransport: TcpManaging {
         guard !transferTargets.isEmpty else { throw TransportError.notConnected }
 
         let blobMsg = BridgerMessage(content: .blob(name: name, size: fileSize, blobType: .file), id: message.id)
-        guard let blobData = blobMsg.toData() else { return }
+        guard let blobData = encryptionService.encryptMessage(blobMsg) else { return }
 
         await stateActor.setIsTransferring(true)
         defer { Task { await stateActor.setIsTransferring(false) } }
@@ -169,7 +200,7 @@ public final class TcpTransport: TcpManaging {
         let fileHandle = try FileHandle(forReadingFrom: url)
         defer { try? fileHandle.close() }
 
-        let chunkSize = 64 * 1024
+        let chunkSize = 1024 * 1024
         var offset: Int64 = 0
 
         while true {
@@ -177,7 +208,7 @@ public final class TcpTransport: TcpManaging {
             guard let data = chunk, !data.isEmpty else { break }
 
             let chunkMsg = BridgerMessage(content: .chunk(id: blobMsg.id, offset: offset, data: data), id: blobMsg.id)
-            guard let chunkData = chunkMsg.toData() else { break }
+        guard let chunkData = encryptionService.encryptMessage(chunkMsg) else { break }
 
             await withTaskGroup(of: Void.self) { group in
                 for session in transferTargets {
@@ -190,7 +221,7 @@ public final class TcpTransport: TcpManaging {
         }
 
         let eofMsg = BridgerMessage(content: .chunk(id: blobMsg.id, offset: offset, data: Data()), id: blobMsg.id)
-        if let eofData = eofMsg.toData() {
+        if let eofData = encryptionService.encryptMessage(eofMsg) {
             await withTaskGroup(of: Void.self) { group in
                 for session in transferTargets {
                     group.addTask { try? await session.send(eofData) }
